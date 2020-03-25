@@ -1,0 +1,15 @@
+conky.config={
+    out_to_x=false,
+    out_to_console=true,
+    update_interval=1,
+    template0 = [[^i(/home/temama/.xmonad/icons/cpu.xbm) ^fg(\\#ffffff)${cpu}%^fg()]],
+    template1 = [[^i(/home/temama/.xmonad/icons/mem.xbm) ^fg(\\#ffffff)${memperc}%^fg()]],
+    template2 = [[^i(/home/temama/.xmonad/icons/wifi_01.xbm) ${wireless_essid wlp4s0}]],
+    template3 = [[(^i(/home/temama/.xmonad/icons/net_down_01.xbm) ^fg(\\#00aa4a)${downspeedf wlp4s0}^fg()]],
+    template4 = [[^i(/home/temama/.xmonad/icons/net_up_01.xbm) ^fg(\\#ff3333)${upspeedf wlp4s0}^fg() )]],
+    template5 = [[^i(/home/temama/.xmonad/icons/bat_full_01.xbm) ^fg(\\#ffffff)${battery_percent BAT0}/${battery_percent BAT1}^fg()]],
+    template6 = [[^fg(\\#ebac54) ${time %Y-%m-%d %R}^fg()]],
+    template7 = [[^i(/home/temama/.xmonad/icons/play.xbm) ^fg(\\#ffffff)${scroll left 30 2 $mpd_title }^fg()]]
+};
+
+conky.text=[[${template7} | ${template0} | ${template1} | ${template2} | ${template3} ${template4} | ${template5} | ${template6}  ]]
