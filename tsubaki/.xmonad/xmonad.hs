@@ -28,7 +28,7 @@ import XMonad.Config.Desktop
 
 main = do
     barLeft <- spawnPipe $ "dzen2 -x 0 -w 700 -ta l " ++ dzen_opts
-    right <- spawnPipe $ "conky -c ~/.xmonad/conky_dzen_laptop | dzen2 -x 700 -ta r " ++ dzen_opts
+    right <- spawnPipe $ "conky -c ~/.xmonad/conky/conky_config | dzen2 -x 700 -ta r " ++ dzen_opts
     xmonad $ desktopConfig 
                 { borderWidth        = 2
                 , terminal           = "sakura"
@@ -64,24 +64,24 @@ main = do
                 , ((modm                , xK_p     ), spawn "rofi -show run" )
                 ]
 
-modm = mod4Mask
+modm = mod1Mask
 
 myLayout = onWorkspace "6" simplestFloat $
            toggleLayouts ( noBorders Full ) $
-           gaps [(U,22), (D,8), (L,8), (R,8)] $
+           gaps [(U,8), (D,8), (L,8), (R,8)] $
            spacing 3 $
            bsp ||| tall ||| grid
            where bsp  = emptyBSP
                  tall = ResizableTall 1 (2/50) (2/3) []
                  grid = Grid
 
-dzen_opts = "-h 14 -fg '#ffffff' -fn 'Ricty Diminished:Bold:size=10'"
+dzen_opts = "-h 14 -fg '#fff' -bg '#a44' -dock -fn 'Source Code Pro:Semibold:size=10'"
 
-my_dzen_PP h = defaultPP { ppCurrent = dzenColor "#00ffaa" "" . wrap "[" "]"
-                         , ppVisible = dzenColor "#00ffaa" "" . wrap "(" ")"
-                         , ppHidden  = dzenColor "#00aa11" "" . wrap "" ""
-                         , ppUrgent  = dzenColor "#ff0000" "" . wrap " " " "
+my_dzen_PP h = defaultPP { ppCurrent = dzenColor "#0fa" "" . wrap "[" "]"
+                         , ppVisible = dzenColor "#0fa" "" . wrap "(" ")"
+                         , ppHidden  = dzenColor "#0a1" "" . wrap "" ""
+                         , ppUrgent  = dzenColor "#f00" "" . wrap " " " "
                          , ppSep     = " : "
-                         , ppLayout  = dzenColor "#aaaaaa" ""
+                         , ppLayout  = dzenColor "#fff" ""
                          , ppOutput  = hPutStrLn h
                          }

@@ -1,0 +1,75 @@
+conky.config={
+    out_to_x=false,
+    out_to_console=true,
+    update_interval=1,
+    cpu_avg_samples=8,
+};
+
+conky.text="" ..
+
+-- utils
+"^ca(1, /home/temama/.xmonad/conky/utils.sh)" ..
+"[ " ..
+"utils" ..
+" ] " ..
+"^ca()" ..
+
+-- sound
+"^ca(1, /home/temama/.xmonad/conky/sound.sh)" ..
+"[ " ..
+"sound" ..
+" ] " ..
+"^ca()" ..
+
+-- system
+
+"^ca(1, /home/temama/.xmonad/conky/system.sh)" ..
+"[ " ..
+-- # cpu
+"^i(/home/temama/.xmonad/icons/cpu.xbm)" ..
+" " ..
+"^fg(${color ffffff})" ..
+"${cpu}%" ..
+" | " ..
+
+-- # memory
+"^i(/home/temama/.xmonad/icons/mem.xbm)" ..
+" " ..
+"^fg(\\#ffffff)" ..
+"${memperc}%" ..
+" | " ..
+
+-- # battery
+"^i(/home/temama/.xmonad/icons/bat_full_01.xbm)" ..
+" " ..
+"${battery_percent BAT0}" ..
+" ] " ..
+"^ca()" ..
+
+-- network
+"^ca(1, /home/temama/.xmonad/conky/network.sh)" ..
+"[ " ..
+
+-- # essid
+"^i(/home/temama/.xmonad/icons/wifi_01.xbm)" ..
+" " ..
+"^fg(${color ffffff})" ..
+"${wireless_essid wlp0s20f3}" ..
+" | " ..
+"^i(/home/temama/.xmonad/icons/net_up_01.xbm)" ..
+" " ..
+"^fg(${color ff3333})" ..
+"${upspeedf wlp0s20f3}" ..
+" | " ..
+"^i(/home/temama/.xmonad/icons/net_down_01.xbm)" ..
+" " ..
+"^fg(${color 00aa4a})" ..
+"${downspeedf wlp0s20f3}" ..
+
+" ] " ..
+"^ca()" ..
+
+-- clock
+"^fg(${color ebac54})" ..
+"${time %Y-%m-%d %H:%M:%S}" ..
+"  "
