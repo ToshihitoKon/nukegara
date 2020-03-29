@@ -27,7 +27,7 @@ update_pwd()
 precmd_functions=($precmd_functions update_pwd)
 PROMPT2="%F{red} > %f"
 
-#export LANG=ja_JP.UTF-8
+export LANG=en_US.UTF-8
 
 # PYENV
 #export PYENV_ROOT="$HOME/.pyenv"
