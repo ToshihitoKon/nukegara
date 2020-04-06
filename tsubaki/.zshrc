@@ -30,9 +30,9 @@ PROMPT2="%F{red} > %f"
 export LANG=en_US.UTF-8
 
 # PYENV
-#export PYENV_ROOT="$HOME/.pyenv"
-#export PATH="$PYENV_ROOT/bin:$PATH"
-#eval "$(pyenv init -)"
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
 
 # RBENV
 #eval "$(rbenv init -)"
