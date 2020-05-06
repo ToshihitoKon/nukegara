@@ -8,41 +8,14 @@ setopt correct
 
 #source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
-LENGTH=50
-
-update_pwd()
-{
-    if [ ${COLUMNS} -gt $(expr 30 + ${LENGTH}) ]; then
-        if [ ${LENGTH} -gt ${#PWD} ]; then
-            local zsh_pwd="%F{green}%U%B$PWD%b%u%f"
-        else
-            local zsh_pwd="%B%U%F{red}..%F{green}$(echo $PWD | tail -c $(expr ${LENGTH} - 2))%f%u%b"
-        fi
-    else
-        local zsh_pwd="%B%U%F{red}..%F{green}$(echo $PWD | tail -c $(expr ${COLUMNS} - 32))%f%b%u"
-    fi
-    PROMPT="%F{white}%K{red}█▓▒░%F{white}%K{red}%B%n@%m%b%k%F{red}█▓▒░%f ${zsh_pwd}%}
- %# "
-}
-precmd_functions=($precmd_functions update_pwd)
-PROMPT2="%F{red} > %f"
+PROMPT="%F{white}%K{red}█▓▒░%F{white}%K{red}%B%n@%m%b%k%F{red}█▓▒░%f %F{green}%~%f%}
+%(?.%F{green}.%F{red})%?%f %F{yellow}(*>△<)%(?..<ﾅｰﾝｯ)%f %# "
 
 export LANG=en_US.UTF-8
 
-# PYENV
-export PYENV_ROOT="$HOME/.pyenv"
-export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
-
-# RBENV
-#eval "$(rbenv init -)"
-
-# GOENV
-#export GOENV_ROOT="$HOME/.goenv"
-#export PATH="$GOENV_ROOT/bin:$PATH"
-#eval "$(goenv init -)"
-#export PATH="$GOROOT/bin:$PATH"
-#export PATH="$PATH:$GOPATH/bin"
+# anyenv
+export PATH="$HOME/.anyenv/bin:$PATH"
+eval "$(anyenv init -)"
 
 #mecha mecha benri na setting
 bindkey -v # set vimmode
