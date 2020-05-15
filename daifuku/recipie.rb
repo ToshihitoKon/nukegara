@@ -1,1 +1,6 @@
 remote_file "/etc/mpd.conf"
+directory "/etc/pulse/"
+remote_file "/etc/pulse/client.conf"
+remote_file "/etc/pulse/daemon.conf"
+remote_file "/etc/pulse/default.pa"
+remote_file "/etc/pulse/system.pa"
