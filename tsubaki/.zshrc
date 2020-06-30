@@ -9,7 +9,7 @@ setopt correct
 #source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 PROMPT="%F{white}%K{red}█▓▒░%F{white}%K{red}%B%n@%m%b%k%F{red}█▓▒░%f %F{green}%~%f%}
-%(?.%F{green}.%F{red})%?%f %F{yellow}(*>△<)%(?..<ﾅｰﾝｯ)%f %# "
+%(?.%F{green}.%F{red})%?%f %F{yellow}(*>△ <)%(?..<ﾅｰﾝｯ)%f %# "
 
 export LANG=en_US.UTF-8
 

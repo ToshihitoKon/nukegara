@@ -75,7 +75,7 @@ myLayout = onWorkspace "6" simplestFloat $
                  tall = ResizableTall 1 (2/50) (2/3) []
                  grid = Grid
 
-dzen_opts = "-h 14 -fg '#fff' -bg '#a44' -dock -fn 'Source Code Pro:Semibold:size=10'"
+dzen_opts = "-h 14 -fg '#fff' -bg '#a44' -dock -fn 'Ricty:Bold:size=12'"
 
 my_dzen_PP h = defaultPP { ppCurrent = dzenColor "#0fa" "" . wrap "[" "]"
                          , ppVisible = dzenColor "#0fa" "" . wrap "(" ")"
