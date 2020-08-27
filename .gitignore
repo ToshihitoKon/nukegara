@@ -5,3 +5,5 @@ xmonad-x86_64-linux
 xmonad.o
 xmonad.hi
 xmonad.errors
+battery_level
+battery_status

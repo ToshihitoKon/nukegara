@@ -1,14 +1,18 @@
-autoload -Uz compinit promptinit predict-on
+autoload -Uz compinit promptinit vcs_info
 compinit
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 promptinit
 setopt correct
-#predict-on
+precmd_vcs_info() { vcs_info }
+precmd_functions+=( precmd_vcs_info )
+setopt prompt_subst
+
+source ~/.zplug/init.zsh
 
 #source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
-PROMPT="%F{white}%K{red}█▓▒░%F{white}%K{red}%B%n@%m%b%k%F{red}█▓▒░%f %F{green}%~%f%}
+PROMPT="%F{white}%K{red}█▓▒░%F{white}%K{red}%B%n@%m%b%k%F{red}█▓▒░%f %F{green}%~%f \$vcs_info_msg_0_%}
 %(?.%F{green}.%F{red})%?%f %F{yellow}(*>△ <)%(?..<ﾅｰﾝｯ)%f %# "
 
 export LANG=en_US.UTF-8
