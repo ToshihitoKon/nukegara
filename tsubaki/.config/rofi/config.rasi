@@ -1,7 +1,7 @@
 configuration {               
-    modi: "window,run,ssh";
+    modi: "run,scripts:/home/temama/.config/rofi/scripts.sh";
     show-icons: true;         
-/*  font: "mono 12";*/        
+    font: "Nimbus Sans 12";
 }
 
 /**

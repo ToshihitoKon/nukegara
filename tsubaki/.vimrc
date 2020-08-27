@@ -96,3 +96,7 @@ nnoremap <C-c><C-c> :noh<CR>
 " Prettier settings
 let g:prettier#config#semi = 'false'
 let g:prettier#config#single_quote = 'true'
+
+" Clipboard連携
+set clipboard&
+set clipboard^=unnamedplus

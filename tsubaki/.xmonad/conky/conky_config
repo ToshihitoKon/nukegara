@@ -21,6 +21,11 @@ conky.text="" ..
 " ] " ..
 "^ca()" ..
 
+-- pacman
+"[ " ..
+"${execpi 3600 checkupdates | wc -l}" ..
+" ] " ..
+
 -- system
 
 "^ca(1, /home/temama/.xmonad/conky/system.sh)" ..
@@ -42,7 +47,7 @@ conky.text="" ..
 -- # battery
 "^i(/home/temama/.xmonad/icons/bat_full_01.xbm)" ..
 " " ..
-"${battery_percent BAT0}" ..
+"${battery}" ..
 " ] " ..
 "^ca()" ..
 

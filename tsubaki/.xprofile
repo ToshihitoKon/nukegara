@@ -19,7 +19,7 @@ xinput disable 'Elan Touchpad'
 # more speed
 xinput set-prop 'Elan TrackPoint' 'libinput Accel Speed' 0.5
 
-pulseaudio --start
+# pulseaudio --start
 
 
 # set wallpaper
