@@ -24,6 +24,11 @@ Plug 'prettier/vim-prettier', {
     \ 'vue',
     \ 'python'] }
 Plug 'mattn/emmet-vim'
+Plug 'Shougo/neocomplcache'
+
+Plug 'Shougo/neosnippet.vim'
+Plug 'Shougo/neosnippet-snippets'
+
 call plug#end()
 
 " filetype settings
