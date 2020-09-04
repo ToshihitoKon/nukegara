@@ -1,29 +1,69 @@
-autoload -Uz compinit promptinit
-compinit
-zstyle ':completion:*' menu select
-zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
-promptinit
-setopt correct
-
-# vcs情報
-autoload -Uz vcs_info
-precmd_vcs_info() { vcs_info }
-precmd_functions+=( precmd_vcs_info )
-zstyle ':vcs_info:git:*' check-for-changes true
-zstyle ':vcs_info:git:*' stagedstr "%F{yellow}!"
-zstyle ':vcs_info:git:*' unstagedstr "%F{red}+"
-zstyle ':vcs_info:*' formats "%F{green}%c%u[%b]%f"
-zstyle ':vcs_info:*' actionformats '[%b|%a]'
-setopt prompt_subst
-
+export LANG=en_US.UTF-8
 source ~/.zplug/init.zsh
 
-#source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+autoload -Uz compinit promptinit vcs_info colors
+compinit
+promptinit
+colors
 
-PROMPT="%F{white}%K{red}█▓▒░%F{white}%K{red}%B%n@%m%b%k%F{red}█▓▒░%f %F{green}%~%f \$vcs_info_msg_0_%}
+zstyle ':completion:*' menu true select
+zstyle ':completion:*' completer _complete _correct
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
+setopt auto_menu
+
+# 補完関数の表示を強化する
+zstyle ':completion:*' verbose yes
+zstyle ':completion:*:messages' format '%F{YELLOW}%d'$DEFAULT
+zstyle ':completion:*:warnings' format '%F{RED}No matches for:''%F{YELLOW} %d'$DEFAULT
+zstyle ':completion:*:descriptions' format '%F{YELLOW}completing %B%d%b'$DEFAULT
+zstyle ':completion:*:options' description 'yes'
+zstyle ':completion:*:descriptions' format '%F{yellow}Completing %B%d%b%f'$DEFAULT
+# マッチ種別を別々に表示
+zstyle ':completion:*' group-name ''
+# LS_COLORSを設定しておく
+export LS_COLORS='di=33:ln=35:so=32:pi=33:ex=31:bd=46;34:cd=43;34:su=41;30:sg=46;30:tw=42;30:ow=43;30'
+# ファイル補完候補に色を付ける
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+# manの補完をセクション番号別に表示させる
+zstyle ':completion:*:manuals' separate-sections true
+setopt magic_equal_subst     # コマンドラインの引数で --prefix=/usr などの = 以降でも補完できる
+
+zstyle ':vcs_info:git:*' stagedstr "%F{yellow}!"
+zstyle ':vcs_info:git:*' unstagedstr "%F{red}+"
+zstyle ':vcs_info:*' formats "[%F{green}%c%u%b%f]"
+zstyle ':vcs_info:*' actionformats '[%b|%a]'etopt correct
+setopt prompt_subst
+precmd_vcs_info() { vcs_info }
+precmd_functions+=( precmd_vcs_info )
+
+TMOUT=1
+TRAPALRM() {
+    if [ "$WIDGET" != "expand-or-complete" ]; then
+        zle reset-prompt
+    fi
+}
+
+PROMPT="[ %F{green}%D{%y/%m/%d %H:%M:%S}%f ] [ %F{green}%~%f ] \$vcs_info_msg_0_%}
 %(?.%F{green}.%F{red})%?%f %F{yellow}(*>△ <)%(?..<ﾅｰﾝｯ)%f %# "
+PROMPT2="%F{yellow}(*>△ <)..%f > "
 
-export LANG=en_US.UTF-8
+export PATH="$HOME/.anyenv/bin:$PATH"
+eval "$(anyenv init -)"
+
+# history search
+bindkey '^P' history-beginning-search-backward
+setopt hist_ignore_all_dups
+setopt hist_ignore_space
+setopt hist_verify
+setopt hist_reduce_blanks
+setopt hist_save_no_dups
+setopt hist_no_store
+setopt hist_expand
+setopt inc_append_history
+
+HISTFILE=~/.histfile
+HISTSIZE=1000
+SAVEHIST=1000
 
 # anyenv
 export PATH="$HOME/.anyenv/bin:$PATH"
@@ -31,33 +71,6 @@ eval "$(anyenv init -)"
 
 #mecha mecha benri na setting
 bindkey -v # set vimmode
-# ヒストリに追加されるコマンド行が古いものと同じなら古いものを削除
-setopt hist_ignore_all_dups
-
-# スペースで始まるコマンド行はヒストリリストから削除
-setopt hist_ignore_space
-
-# ヒストリを呼び出してから実行する間に一旦編集可能
-setopt hist_verify
-
-# 余分な空白は詰めて記録
-setopt hist_reduce_blanks  
-
-# 古いコマンドと同じものは無視 
-setopt hist_save_no_dups
-
-# historyコマンドは履歴に登録しない
-setopt hist_no_store
-
-# 補完時にヒストリを自動的に展開         
-setopt hist_expand
-
-# 履歴をインクリメンタルに追加
-setopt inc_append_history
-
-# インクリメンタルからの検索
-bindkey "^R" history-incremental-search-backward
-bindkey "^S" history-incremental-search-forward
 
 # mecha mecha benri na command
 alias hibernate="systemctl hibernate"
@@ -66,28 +79,13 @@ alias pbcopy='xsel --clipboard --input'
 alias pbpaste='xsel --clipboard --output'
 alias localhosting="python -m http.server"
 alias temamount="sudo mount -o 'uid=1000,gid=1000'"
+
 alias rm="rm -i"
-
-
-alias ls="ls --color=always"
-#alias ls="tree -L 1 -h -C"
-alias tree="tree -L 2 -C"
 alias less="less -MR"
+alias ls="ls --color=always"
 alias gcc="gcc -Wall"
 
-alias tweet-pipe="xargs -IXX tweet XX"
-alias al_output="xrandr --output HDMI2 --auto --above eDP1; ~/.fehbg"
-alias urxvt_pt10="urxvt --font 'xft:Ricty Diminished:size=10:Regular'"
-alias urxvt_alpha="urxvt --background '[0]black'"
-alias pulse_output_daifuku="export PULSE_SERVER=192.168.150.170"
-alias ncmpc="ncmpc --config ~/.config/ncmpc/ncmpc.config"
-
 alias echo-yayoi='echo -n "ζ*'"'"'ヮ'"'"')ζ< ";echo'
-
-# notifies
-alias ncftp="echo 'ncftp is not secure! you should use sftp (sftp can recursicve get and put.)'"
-
-#screenfetch
 
 # The next line updates PATH for the Google Cloud SDK.
 if [ -f '/home/temama/google-cloud-sdk/path.zsh.inc' ]; then . '/home/temama/google-cloud-sdk/path.zsh.inc'; fi
