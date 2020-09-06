@@ -44,7 +44,7 @@ colorscheme molokai
 
 " statusline format
 set laststatus=2
-set statusline=[%F]
+set statusline=[%F]%m%h%w\ %<[TYPE=%Y]\ %=[POS=%l/%L(%02v)]
 highlight Statusline cterm=bold ctermbg=DarkGreen ctermfg=White
 
 " go-vim settings
@@ -64,7 +64,8 @@ set expandtab       " \tをspaceに変換して表示
 set shiftwidth=4    " indent幅
 set tabstop=4       " expandtab時のtab幅
 set modeline        " modeline有効
-set modelines=5      " vim: が上下5行以内にあれば反映
+set modelines=5     " vim: が上下5行以内にあれば反映
+set smartcase       " 頭良く検索
 
 
 " search setting
@@ -79,24 +80,6 @@ nnoremap <C-k> <C-w>k
 nnoremap <C-l> <C-w>l
 nnoremap ; /
 nnoremap <C-c><C-c> :noh<CR>
-
-"" unite for ag
-" 大文字小文字を区別しない
-" let g:unite_enable_ignore_case = 1
-" let g:unite_enable_smart_case = 1
-
-" grep検索
-"nnoremap <silent> ,cg :<C-u>Unite grep:. -buffer-name=search-buffer<CR>
-
-" カーソル位置の単語をgrep検索
-"nnoremap <silent> <C-g> :<C-u>Unite grep:. -buffer-name=search-buffer<CR><C-R><C-W>
-
-" unite grep に ag(The Silver Searcher) を使う
-"if executable('ag')
-"  let g:unite_source_grep_command = 'ag'
-"  let g:unite_source_grep_default_opts = '--nogroup --nocolor --column'
-"  let g:unite_source_grep_recursive_opt = ''
-"endif
 
 " Prettier settings
 let g:prettier#config#semi = 'false'

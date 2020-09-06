@@ -1,0 +1,8 @@
+let g:netrw_dirhistmax  =10
+let g:netrw_dirhistcnt =6
+let g:netrw_dirhist_6='scp://daifuku/mochi/'
+let g:netrw_dirhist_5='scp://daifuku/'
+let g:netrw_dirhist_4='scp://daifuku/kashiwa/'
+let g:netrw_dirhist_3='scp://daifuku/'
+let g:netrw_dirhist_2='scp://daifuku~/'
+let g:netrw_dirhist_1='scp://daifuku:~/'

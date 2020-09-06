@@ -28,11 +28,12 @@ zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 zstyle ':completion:*:manuals' separate-sections true
 setopt magic_equal_subst     # コマンドラインの引数で --prefix=/usr などの = 以降でも補完できる
 
+setopt prompt_subst
+zstyle ':vcs_info:git:*' check-for-changes true
 zstyle ':vcs_info:git:*' stagedstr "%F{yellow}!"
 zstyle ':vcs_info:git:*' unstagedstr "%F{red}+"
-zstyle ':vcs_info:*' formats "[%F{green}%c%u%b%f]"
-zstyle ':vcs_info:*' actionformats '[%b|%a]'etopt correct
-setopt prompt_subst
+zstyle ':vcs_info:*' formats " [%F{green}%s:%c%u%b%F{224}]"
+zstyle ':vcs_info:*' actionformats '[%b|%a]'
 precmd_vcs_info() { vcs_info }
 precmd_functions+=( precmd_vcs_info )
 
@@ -43,12 +44,14 @@ TRAPALRM() {
     fi
 }
 
-PROMPT="[ %F{green}%D{%y/%m/%d %H:%M:%S}%f ] [ %F{green}%~%f ] \$vcs_info_msg_0_%}
+PROMPT="%B%U%F{224} [ %D{%Y.%m.%d %H:%M:%S} ] [ %F{green}%~%F{224} ]\${vcs_info_msg_0_}%u%b
 %(?.%F{green}.%F{red})%?%f %F{yellow}(*>△ <)%(?..<ﾅｰﾝｯ)%f %# "
 PROMPT2="%F{yellow}(*>△ <)..%f > "
 
 export PATH="$HOME/.anyenv/bin:$PATH"
 eval "$(anyenv init -)"
+
+bindkey -v # set vimmode
 
 # history search
 bindkey '^P' history-beginning-search-backward
@@ -69,8 +72,6 @@ SAVEHIST=1000
 export PATH="$HOME/.anyenv/bin:$PATH"
 eval "$(anyenv init -)"
 
-#mecha mecha benri na setting
-bindkey -v # set vimmode
 
 # mecha mecha benri na command
 alias hibernate="systemctl hibernate"
