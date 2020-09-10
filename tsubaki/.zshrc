@@ -1,25 +1,25 @@
 export LANG=en_US.UTF-8
 source ~/.zplug/init.zsh
 
+bindkey -v # set vimmode
+
 autoload -Uz compinit promptinit vcs_info colors add-zsh-hook
 compinit
 promptinit
 colors
 
+# 補完関連
 zstyle ':completion:*' menu true select interactive
-zstyle ':completion:*' completer _complete _all_matches
-zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 setopt ALWAYS_TO_END
 unsetopt AUTO_LIST
-
-# 補完関数の表示を強化する
+zstyle ':completion:*' completer _complete _all_matches
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 zstyle ':completion:*' verbose yes
 zstyle ':completion:*:messages' format '%F{YELLOW}%d'$DEFAULT
 zstyle ':completion:*:warnings' format '%F{RED}No matches for:''%F{YELLOW} %d'$DEFAULT
 zstyle ':completion:*:descriptions' format '%F{YELLOW}completing %B%d%b'$DEFAULT
 zstyle ':completion:*:options' description 'yes'
 zstyle ':completion:*:descriptions' format '%F{yellow}Completing %B%d%b%f'$DEFAULT
-
 # マッチ種別を別々に表示
 zstyle ':completion:*' group-name ''
 # LS_COLORSを設定しておく
@@ -30,6 +30,15 @@ zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 zstyle ':completion:*:manuals' separate-sections true
 setopt magic_equal_subst     # コマンドラインの引数で --prefix=/usr などの = 以降でも補完できる
 
+zmodload zsh/complist
+# ^IはTABキーと同一の挙動をする
+bindkey -v '^I' expand-or-complete 
+bindkey -M menuselect '^I' vi-forward-char
+bindkey -M menuselect '^L' vi-forward-char
+bindkey -M menuselect '^H' vi-backward-char
+
+
+# vcs
 setopt prompt_subst
 zstyle ':vcs_info:*' max-exports 3
 zstyle ':vcs_info:git:*' stagedstr "%F{yellow}!"
@@ -49,6 +58,7 @@ TRAPALRM() {
     fi
 }
 
+
 PROMPT='%B%U%F{224} [ %D{%Y.%m.%d %H:%M:%S} ] [ %F{green}%~%F{224} ]${vcs_info_msg_0_}%u%b
 %(?.%F{green}.%F{red})%?%f %F{yellow}(*>△ <)%(?..<ﾅｰﾝｯ)%f %# '
 PROMPT2="%F{yellow}(*>△ <)..%f > "
@@ -56,7 +66,6 @@ PROMPT2="%F{yellow}(*>△ <)..%f > "
 export PATH="$HOME/.anyenv/bin:$PATH"
 eval "$(anyenv init -)"
 
-bindkey -v # set vimmode
 
 # history search
 autoload history-search-end
