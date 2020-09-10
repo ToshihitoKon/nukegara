@@ -6,7 +6,7 @@ window_x=$(($mouse_x - $window_width / 2))
 
 contents=`cat << EOS
 utils
-^ca(1,import /home/temama/tmp.png)[screenshot]^ca()
+^ca(1,~/.config/nukegara_scripts/ss.sh)[screenshot]^ca()
 EOS
 `
 echo -e "${contents}" | dzen2 \

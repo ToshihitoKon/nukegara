@@ -94,7 +94,7 @@ eval "$(anyenv init -)"
 
 # mecha mecha benri na command
 alias hibernate="systemctl hibernate"
-alias ss='import /home/temama/tmp.png'
+alias ss='~/.config/nukegara_scripts/ss.sh'
 alias pbcopy='xsel --clipboard --input'
 alias pbpaste='xsel --clipboard --output'
 alias localhosting="python -m http.server"
