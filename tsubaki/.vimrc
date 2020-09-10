@@ -65,6 +65,7 @@ set shiftwidth=4    " indent幅
 set tabstop=4       " expandtab時のtab幅
 set modeline        " modeline有効
 set modelines=5     " vim: が上下5行以内にあれば反映
+set ignorecase
 set smartcase       " 頭良く検索
 
 
@@ -87,4 +88,5 @@ let g:prettier#config#single_quote = 'true'
 
 " Clipboard連携
 set clipboard&
-set clipboard^=unnamedplus
+set clipboard=
+set clipboard=autosellect,unnamedplus

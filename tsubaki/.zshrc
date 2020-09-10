@@ -1,15 +1,16 @@
 export LANG=en_US.UTF-8
 source ~/.zplug/init.zsh
 
-autoload -Uz compinit promptinit vcs_info colors
+autoload -Uz compinit promptinit vcs_info colors add-zsh-hook
 compinit
 promptinit
 colors
 
-zstyle ':completion:*' menu true select
-zstyle ':completion:*' completer _complete _correct
+zstyle ':completion:*' menu true select interactive
+zstyle ':completion:*' completer _complete _all_matches
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
-setopt auto_menu
+setopt ALWAYS_TO_END
+unsetopt AUTO_LIST
 
 # 補完関数の表示を強化する
 zstyle ':completion:*' verbose yes
@@ -18,6 +19,7 @@ zstyle ':completion:*:warnings' format '%F{RED}No matches for:''%F{YELLOW} %d'$D
 zstyle ':completion:*:descriptions' format '%F{YELLOW}completing %B%d%b'$DEFAULT
 zstyle ':completion:*:options' description 'yes'
 zstyle ':completion:*:descriptions' format '%F{yellow}Completing %B%d%b%f'$DEFAULT
+
 # マッチ種別を別々に表示
 zstyle ':completion:*' group-name ''
 # LS_COLORSを設定しておく
@@ -29,13 +31,16 @@ zstyle ':completion:*:manuals' separate-sections true
 setopt magic_equal_subst     # コマンドラインの引数で --prefix=/usr などの = 以降でも補完できる
 
 setopt prompt_subst
-zstyle ':vcs_info:git:*' check-for-changes true
+zstyle ':vcs_info:*' max-exports 3
 zstyle ':vcs_info:git:*' stagedstr "%F{yellow}!"
 zstyle ':vcs_info:git:*' unstagedstr "%F{red}+"
 zstyle ':vcs_info:*' formats " [%F{green}%s:%c%u%b%F{224}]"
 zstyle ':vcs_info:*' actionformats '[%b|%a]'
-precmd_vcs_info() { vcs_info }
-precmd_functions+=( precmd_vcs_info )
+zstyle ':vcs_info:*' check-for-changes true
+precmd_vcs_info() {
+    vcs_info
+}
+add-zsh-hook precmd precmd_vcs_info
 
 TMOUT=1
 TRAPALRM() {
@@ -44,8 +49,8 @@ TRAPALRM() {
     fi
 }
 
-PROMPT="%B%U%F{224} [ %D{%Y.%m.%d %H:%M:%S} ] [ %F{green}%~%F{224} ]\${vcs_info_msg_0_}%u%b
-%(?.%F{green}.%F{red})%?%f %F{yellow}(*>△ <)%(?..<ﾅｰﾝｯ)%f %# "
+PROMPT='%B%U%F{224} [ %D{%Y.%m.%d %H:%M:%S} ] [ %F{green}%~%F{224} ]${vcs_info_msg_0_}%u%b
+%(?.%F{green}.%F{red})%?%f %F{yellow}(*>△ <)%(?..<ﾅｰﾝｯ)%f %# '
 PROMPT2="%F{yellow}(*>△ <)..%f > "
 
 export PATH="$HOME/.anyenv/bin:$PATH"
@@ -54,7 +59,12 @@ eval "$(anyenv init -)"
 bindkey -v # set vimmode
 
 # history search
-bindkey '^P' history-beginning-search-backward
+autoload history-search-end
+zle -N history-beginning-search-backward-end history-search-end
+zle -N history-beginning-search-forward-end history-search-end
+bindkey "^p" history-beginning-search-backward-end
+bindkey "^O" history-beginning-search-forward-end
+
 setopt hist_ignore_all_dups
 setopt hist_ignore_space
 setopt hist_verify

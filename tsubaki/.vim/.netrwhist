@@ -1,5 +1,9 @@
 let g:netrw_dirhistmax  =10
-let g:netrw_dirhistcnt =6
+let g:netrw_dirhistcnt =0
+let g:netrw_dirhist_0='scp://daifuku/mackerel-agent_linux_arm/'
+let g:netrw_dirhist_9='scp://daifuku/'
+let g:netrw_dirhist_8='scp://daifuku:22~/'
+let g:netrw_dirhist_7='scp://daifuku:~/'
 let g:netrw_dirhist_6='scp://daifuku/mochi/'
 let g:netrw_dirhist_5='scp://daifuku/'
 let g:netrw_dirhist_4='scp://daifuku/kashiwa/'
