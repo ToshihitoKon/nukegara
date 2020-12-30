@@ -55,6 +55,7 @@ main = do
                 , ((modm                , xK_b     ), sendMessage ToggleStruts )
                 , ((modm .|. controlMask, xK_space ), sendMessage ToggleLayout)
                 , ((modm .|. controlMask, xK_Return), spawn "transparentwindow")
+                , ((modm .|. controlMask, xK_q     ), spawn i3lock_cmd)
                 , ((0, 0x1008ff11), spawn "pamixer --decrease 2")
                 , ((0, 0x1008ff13), spawn "pamixer --increase 2")
                 , ((0, 0x1008ff12), spawn "pamixer --toggle-mute")
@@ -76,6 +77,7 @@ myLayout = onWorkspace "6" simplestFloat $
                  grid = Grid
 
 dzen_opts = "-h 14 -fg '#fff' -bg '#a44' -dock -fn 'Ricty:Bold:size=12'"
+i3lock_cmd = "i3lock --indicator -k --datecolor ddddddff --timecolor ddddddff -B 25"
 
 my_dzen_PP h = defaultPP { ppCurrent = dzenColor "#0fa" "" . wrap "[" "]"
                          , ppVisible = dzenColor "#0fa" "" . wrap "(" ")"

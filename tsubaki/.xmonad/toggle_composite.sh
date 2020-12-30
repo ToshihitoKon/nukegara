@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if pgrep compton &> /dev/null; then
-    pkill compton &
+if pgrep picom &> /dev/null; then
+    pkill picom &
 else
-    compton -b
+    picom -b
 fi
