@@ -53,6 +53,25 @@ remote_file "/home/app/.config/pulse/system.pa" do
 end
 
 
+# nginx
+package "nginx"
+remote_file "/etc/nginx/nginx.conf" do
+  user "root"
+  mode "755"
+end
+remote_file "/etc/nginx/sites-available/default" do
+  user "root"
+  mode "755"
+end
+remote_file "/etc/nginx/sites-enabled/default" do
+  user "root"
+  mode "755"
+end
+directory "/var/lib/nginx" do
+  mode "775"
+end
+
+
 # 無理
 #execute "pulseaudio.socket" do
 #user "app"
