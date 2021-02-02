@@ -7,7 +7,7 @@ directory "/home/app" do
 end
 
 ['sudo', 'adm', 'dialout', 'audio', 'plugdev', 'users', 'input', 'netdev'].each do |group|
-  execute "add sudo" do
+  execute "add sudo group at %s" % group do
     only_if "id app"
     command "usermod app -aG %s" % group
   end
