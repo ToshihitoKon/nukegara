@@ -29,6 +29,14 @@ Plug 'Shougo/neocomplcache'
 Plug 'Shougo/neosnippet.vim'
 Plug 'Shougo/neosnippet-snippets'
 
+" スクロールをスムーズにしてくれる
+Plug 'psliwka/vim-smoothie'
+
+" カラフルな複数ハイライトができる
+Plug 't9md/vim-quickhl'
+" visualモードで選択した文字列を検索できる
+Plug 'thinca/vim-visualstar'
+
 call plug#end()
 
 " filetype settings
@@ -90,3 +98,18 @@ let g:prettier#config#single_quote = 'true'
 set clipboard&
 set clipboard=
 set clipboard=autosellect,unnamedplus
+
+
+" quickhl
+" nmap <Space>m <Plug>(quickhl-manual-this)
+" xmap <Space>m <Plug>(quickhl-manual-this)
+" nmap <Space>w <Plug>(quickhl-manual-this-whole-word)
+" xmap <Space>w <Plug>(quickhl-manual-this-whole-word)
+" nmap <Space>c <Plug>(quickhl-manual-clear)
+" vmap <Space>c <Plug>(quickhl-manual-clear)
+" nmap <Space>M <Plug>(quickhl-manual-reset)
+" xmap <Space>M <Plug>(quickhl-manual-reset)
+" space + j でカーソルのある文字列をハイライトするモードtoggle
+nmap <Space>j <Plug>(quickhl-cword-toggle)
+" nmap <Space>] <Plug>(quickhl-tag-toggle)
+" map H <Plug>(operator-quickhl-manual-this-motion)
