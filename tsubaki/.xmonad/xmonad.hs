@@ -29,7 +29,7 @@ import XMonad.Config.Desktop
 main = do
     barLeft <- spawnPipe $ "dzen2 -x 0 -w 700 -ta l " ++ dzen_opts
     right <- spawnPipe $ "conky -c ~/.xmonad/conky/conky_config | dzen2 -x 700 -ta r " ++ dzen_opts
-    xmonad $ desktopConfig 
+    xmonad $ desktopConfig
                 { borderWidth        = 2
                 , terminal           = "sakura"
                 , modMask            = modm
@@ -38,7 +38,7 @@ main = do
                 , logHook            = dynamicLogWithPP $ my_dzen_PP barLeft
                 , manageHook         = manageDocks <+> manageHook desktopConfig
                 , handleEventHook    = docksEventHook <+> handleEventHook desktopConfig
-                , layoutHook         = avoidStruts $ myLayout 
+                , layoutHook         = avoidStruts $ myLayout
                 }
 
                 `additionalKeys`
@@ -56,6 +56,7 @@ main = do
                 , ((modm .|. controlMask, xK_space ), sendMessage ToggleLayout)
                 , ((modm .|. controlMask, xK_Return), spawn "transparentwindow")
                 , ((modm .|. controlMask, xK_q     ), spawn i3lock_cmd)
+                , ((modm .|. controlMask, xK_4     ), spawn "/home/temama/.config/nukegara_scripts/ss.sh")
                 , ((0, 0x1008ff11), spawn "pamixer --decrease 2")
                 , ((0, 0x1008ff13), spawn "pamixer --increase 2")
                 , ((0, 0x1008ff12), spawn "pamixer --toggle-mute")
@@ -63,6 +64,7 @@ main = do
                 , ((0, 0x1008ff02), spawn "xbacklight -inc 10")
                 , ((modm                , xK_c     ), spawn "/home/temama/.xmonad/toggle_composite.sh" )
                 , ((modm                , xK_p     ), spawn "rofi -show run" )
+                , ((modm                , xK_e     ), spawn "rofi -show emoji" )
                 ]
 
 modm = mod1Mask

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set bell-style none
 
 mouse_x=`xdotool getmouselocation | sed -e 's/x:\([0-9]\+\) .*/\1/g'`
 window_width=200

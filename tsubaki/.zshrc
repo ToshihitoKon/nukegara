@@ -49,6 +49,7 @@ zstyle ':vcs_info:git:*' unstagedstr "%F{red}+"
 zstyle ':vcs_info:*' formats " [%F{green}%s:%c%u%b%F{224}]"
 zstyle ':vcs_info:*' actionformats '[%b|%a]'
 zstyle ':vcs_info:*' check-for-changes true
+
 precmd_vcs_info() {
     vcs_info
 }
@@ -62,9 +63,9 @@ TRAPALRM() {
 }
 
 
-PROMPT='%B%U%F{224} [ %D{%Y.%m.%d %H:%M:%S} ] [ %F{green}%~%F{224} ]${vcs_info_msg_0_}%u%b
-%(?.%F{green}.%F{red})%?%f %F{yellow}(*>△ <)%(?..<ﾅｰﾝｯ)%f %# '
-PROMPT2="%F{yellow}(*>△ <)..%f > "
+PROMPT='%B%U%F{224} [ %D{%Y/%m/%d %H:%M:%S} ] [ %F{green}%~%F{224} ]${vcs_info_msg_0_}%u%b
+%(?.%F{green}.%F{red})%?%f %F{yellow}(*>△<)%(?..<ﾅｰﾝｯ)%f %# '
+PROMPT2="%F{yellow}(*>△<)..%f > "
 
 export PATH="$HOME/.anyenv/bin:$PATH"
 eval "$(anyenv init -)"

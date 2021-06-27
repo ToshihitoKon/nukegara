@@ -8,14 +8,33 @@ endif
 
 " packages
 call plug#begin('~/.vim/plugged')
+" Plug 'w0rp/ale'
+
+" lsp
+" Plug 'prabirshrestha/async.vim'
+" Plug 'prabirshrestha/asyncomplete.vim'
+" Plug 'prabirshrestha/asyncomplete-lsp.vim'
+" Plug 'mattn/vim-lsp-settings'
+
+" golang
+" Plug 'prabirshrestha/vim-lsp'
+Plug 'mattn/vim-goimports'
+" Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
+
+" python
+Plug 'Vimjas/vim-python-pep8-indent'
+
+" general
 Plug 'fatih/molokai'
 Plug 'scrooloose/nerdtree'
-Plug 'Xuyuanp/nerdtree-git-plugin'
-Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
-Plug 'Shougo/unite.vim'
+" Plug 'Shougo/unite.vim'
 Plug 'rking/ag.vim'
+
+" git
+Plug 'Xuyuanp/nerdtree-git-plugin'
 Plug 'airblade/vim-gitgutter'
 Plug 'tpope/vim-fugitive'
+
 Plug 'prettier/vim-prettier', {
   \ 'do': 'yarn install',
   \ 'branch': 'release/1.x',
@@ -23,11 +42,11 @@ Plug 'prettier/vim-prettier', {
     \ 'javascript',
     \ 'vue',
     \ 'python'] }
+
 Plug 'mattn/emmet-vim'
 Plug 'Shougo/neocomplcache'
-
-Plug 'Shougo/neosnippet.vim'
-Plug 'Shougo/neosnippet-snippets'
+" Plug 'Shougo/neosnippet.vim'
+" Plug 'Shougo/neosnippet-snippets'
 
 " スクロールをスムーズにしてくれる
 Plug 'psliwka/vim-smoothie'
@@ -36,6 +55,14 @@ Plug 'psliwka/vim-smoothie'
 Plug 't9md/vim-quickhl'
 " visualモードで選択した文字列を検索できる
 Plug 'thinca/vim-visualstar'
+
+" :Commentaryでコメントアウトできる
+Plug 'tpope/vim-commentary'
+
+" Powerlineフォントを使わないお洒落なstatusline
+Plug 'itchyny/lightline.vim'
+
+
 
 call plug#end()
 
@@ -53,11 +80,24 @@ colorscheme molokai
 " statusline format
 set laststatus=2
 set statusline=[%F]%m%h%w\ %<[TYPE=%Y]\ %=[POS=%l/%L(%02v)]
-highlight Statusline cterm=bold ctermbg=DarkGreen ctermfg=White
+hi Statusline cterm=bold ctermbg=DarkGreen ctermfg=White
+hi TabLine ctermbg=darkgray ctermfg=white
+hi TabLineFill ctermfg=black
+hi TabLineSel ctermbg=DarkGreen ctermfg=White
 
 " go-vim settings
-let g:go_fmt_command = "goimports"
-let g:go_def_mapping_enabled = 0
+" let g:go_fmt_command = "goimports"
+" let g:go_def_mapping_enabled = 0
+
+let g:goimports = 1
+unlet! g:goimports_simplify
+
+" ale
+let g:ale_fixers = {
+  \ '*': ['remove_trailing_lines', 'trim_whitespace'],
+  \ 'javascript': ['eslint'],
+\}
+let g:ale_fix_on_save = 1
 
 " general
 set hidden          " 編集中のバッファを表示していても他のファイルを開ける
@@ -89,6 +129,8 @@ nnoremap <C-k> <C-w>k
 nnoremap <C-l> <C-w>l
 nnoremap ; /
 nnoremap <C-c><C-c> :noh<CR>
+nnoremap < :tabprevious<CR>
+nnoremap > :tabnext<CR>
 
 " Prettier settings
 let g:prettier#config#semi = 'false'
@@ -96,9 +138,7 @@ let g:prettier#config#single_quote = 'true'
 
 " Clipboard連携
 set clipboard&
-set clipboard=
-set clipboard=autosellect,unnamedplus
-
+set clipboard=unnamedplus
 
 " quickhl
 " nmap <Space>m <Plug>(quickhl-manual-this)
