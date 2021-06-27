@@ -7,7 +7,7 @@ directory "/home/app" do
 end
 
 ['sudo', 'adm', 'dialout', 'audio', 'plugdev', 'users', 'input', 'netdev'].each do |group|
-  execute "add sudo" do
+  execute "add sudo group at %s" % group do
     only_if "id app"
     command "usermod app -aG %s" % group
   end
@@ -50,6 +50,25 @@ end
 
 remote_file "/home/app/.config/pulse/system.pa" do
   user "app"
+end
+
+
+# nginx
+package "nginx"
+remote_file "/etc/nginx/nginx.conf" do
+  user "root"
+  mode "755"
+end
+remote_file "/etc/nginx/sites-available/default" do
+  user "root"
+  mode "755"
+end
+remote_file "/etc/nginx/sites-enabled/default" do
+  user "root"
+  mode "755"
+end
+directory "/var/lib/nginx" do
+  mode "775"
 end
 
 
