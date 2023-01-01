@@ -58,30 +58,18 @@ input * {
 
     # screenshot
     bindsym $mod+Ctrl+4 exec /home/temama/.config/sway/screenshot.sh
+
+    bindsym $mod+Ctrl+q exec swaylock --ignore-empty-password --image /home/temama/Images/Windows2000.jpg --scaling fill
 #
 # Moving around:
 #
     # Move your focus around
-    #bindsym $mod+$left focus left
-    #bindsym $mod+$down focus down
-    #bindsym $mod+$up focus up
-    #bindsym $mod+$right focus right
-    # Or use $mod+[up|down|left|right]
-    #bindsym $mod+Left focus left
-    #bindsym $mod+Down focus down
-    #bindsym $mod+Up focus up
-    #bindsym $mod+Right focus right
+    bindsym $mod+$down focus next
+    bindsym $mod+$up focus prev
 
     # Move the focused window with the same, but add Shift
-    #bindsym $mod+Shift+$left move left
-    #bindsym $mod+Shift+$down move down
-    #bindsym $mod+Shift+$up move up
-    #bindsym $mod+Shift+$right move right
-    # Ditto, with arrow keys
-    #bindsym $mod+Shift+Left move left
-    #bindsym $mod+Shift+Down move down
-    #bindsym $mod+Shift+Up move up
-    #bindsym $mod+Shift+Right move right
+    bindsym $mod+Shift+$down mark _last; focus left; swap container with mark "_last"; [con_mark="_last"] focus
+    bindsym $mod+Shift+$up mark _last; focus right; swap container with mark "_last"; [con_mark="_last"] focus
 #
 # Workspaces:
 #
@@ -203,3 +191,6 @@ include /etc/sway/config.d/*
 exec fcitx5
 gaps inner 10
 gaps horizontal 10
+
+# without title bar
+default_border pixel
