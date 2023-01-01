@@ -18,41 +18,44 @@ bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume @DEFAULT
 bindsym XF86AudioLowerVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ -10% && $refresh_i3status
 bindsym XF86AudioMute exec --no-startup-id pactl set-sink-mute @DEFAULT_SINK@ toggle && $refresh_i3status
 bindsym XF86AudioMicMute exec --no-startup-id pactl set-source-mute @DEFAULT_SOURCE@ toggle && $refresh_i3status
+bindsym XF86MonBrightnessUp exec --no-startup-id xbacklight -inc 10
+bindsym XF86MonBrightnessDown exec --no-startup-id xbacklight -dec 10
 
 # i3-gaps
 gaps inner 10
 
 # Use Mouse+$mod to drag floating windows to their wanted position
 floating_modifier $mod
+# bindsym $mod+button2 
 
 # start a terminal
-bindsym $mod+Shift+Return exec sakura
+bindsym $mod+Shift+Return exec alacritty
 # start program launcher
 bindsym $mod+p exec --no-startup-id rofi -show run
+bindsym $mod+e exec --no-startup-id rofi -show emoji
 
 # change focus
-bindsym $mod+j focus next
-bindsym $mod+k focus prev
+bindsym $mod+j focus right
+bindsym $mod+k focus down
+# ウィンドウ移動
+bindsym $mod+Shift+j mark _last; focus left; swap with mark "_last"; [con_mark="_last"] focus
+bindsym $mod+Shift+k mark _last; focus down; swap with mark "_last"; [con_mark="_last"] focus
 
 # workspace切り替え
 bindsym $mod+l workspace next
 bindsym $mod+h workspace prev
 
+
 # move focused window
 # TODO: なんかちがう workspaceになにか無いと回らない
 bindsym $mod+Shift+l move container to workspace next
-bindsym $mod+Shift+j move container to workspace prev
+bindsym $mod+Shift+h move container to workspace prev
 
 # disbale window title bar
 default_border none
 
 # enter fullscreen mode for the focused container
-# TODO: 効いてない
-# bindsym $mod+Shift+Space fullscreen toggle
-
-# レイアウトをfullscleen切り替え
-# TODO: 上手く行ってない、多分autotiling側
-# bindsym $mod+t floating toggle
+bindsym $mod+Ctrl+space fullscreen toggle
 
 # focused windowを右上に飛ばしたい
 # TODO: うまくいってない
@@ -96,10 +99,11 @@ bindsym $mod+Shift+8 move container to workspace number $ws8
 bindsym $mod+Shift+9 move container to workspace number $ws9
 bindsym $mod+Shift+0 move container to workspace number $ws10
 
-bindsym $mod+Ctrl+l resize grow right 30 px
-bindsym $mod+Ctrl+h resize shrink right 30 px
+bindsym $mod+Ctrl+l resize grow right 60 px
+bindsym $mod+Ctrl+h resize shrink right 60 px
 # TODO: shrink、可能なら一番右のcontainerならleft 30pxにしたい
 
+bindsym $mod+Shift+c kill
 
 # reload the configuration file
 bindsym $mod+Shift+r reload
@@ -110,14 +114,17 @@ bindsym $mod+Shift+q exec "i3-nagbar -t warning -m 'You pressed the exit shortcu
 
 # nukegara
 # マウス使うやつは--releaseをつけると良いらしい
-bindsym --release $mod+o exec "~/.config/nukegara_scripts/ss.sh"
+bindsym --release $mod+Ctrl+4 exec "~/.config/nukegara_scripts/ss.sh"
 
 # status bar
 bar {
-    font pango:monospace 10
+    font pango:Ricty Bold 11
     position top
-    output primary
-    # TODO: 設定します
-    status_command i3status # --config ~/.config/i3/i3status.conf
+    # output primary
+    separator_symbol "-"
+    status_command i3status --config ~/.config/i3/i3status.conf
+    colors {
+        background #550000
+    }
 }
 

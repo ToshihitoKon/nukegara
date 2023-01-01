@@ -4,7 +4,7 @@ set $left h
 set $down j
 set $up k
 set $right l
-set $term sakura
+set $term alacritty
 set $menu rofi -show run
 
 ### Output configuration
@@ -50,6 +50,9 @@ input * {
 
     # Exit sway (logs you out of your Wayland session)
     bindsym $mod+Shift+e exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -b 'Yes, exit sway' 'swaymsg exit'
+
+    # screenshot
+    bindsym $mod+Ctrl+4 exec /home/temama/.config/sway/screenshot.sh
 #
 # Moving around:
 #
@@ -101,7 +104,7 @@ input * {
     bindsym $mod+Shift+9 move window to workspace number 9
     bindsym $mod+Shift+0 move window to workspace number 10
 
-    
+
     bindsym $mod+$left workspace prev
     bindsym $mod+$right workspace next
     bindsym $mod+Shift+$left move window to workspace next
@@ -142,7 +145,7 @@ input * {
     # Sway has a "scratchpad", which is a bag of holding for windows.
     # You can send windows there and get them back later.
 
-    # Move the currently focused window to the scratchpad
+# Move the currently focused window to the scratchpad
     bindsym $mod+Shift+minus move scratchpad
 
     # Show the next scratchpad window or hide the focused scratchpad window.
@@ -191,3 +194,7 @@ bar {
 }
 
 include /etc/sway/config.d/*
+
+exec fcitx5
+gaps inner 10
+gaps horizontal 10

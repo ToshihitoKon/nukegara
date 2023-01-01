@@ -18,8 +18,8 @@ call plug#begin('~/.vim/plugged')
 
 " golang
 " Plug 'prabirshrestha/vim-lsp'
-Plug 'mattn/vim-goimports'
-" Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
+" Plug 'mattn/vim-goimports'
+Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
 
 " python
 Plug 'Vimjas/vim-python-pep8-indent'
@@ -62,7 +62,8 @@ Plug 'tpope/vim-commentary'
 " Powerlineフォントを使わないお洒落なstatusline
 Plug 'itchyny/lightline.vim'
 
-
+" pug
+Plug 'digitaltoad/vim-pug'
 
 call plug#end()
 

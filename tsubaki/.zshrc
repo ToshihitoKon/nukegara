@@ -106,7 +106,7 @@ alias temamount="sudo mount -o 'uid=1000,gid=1000'"
 
 alias rm="rm -i"
 alias less="less -MR"
-alias ls="ls --color=always"
+alias ls="ls --color=always -1"
 alias gcc="gcc -Wall"
 
 alias echo-yayoi='echo -n "ζ*'"'"'ヮ'"'"')ζ< ";echo'

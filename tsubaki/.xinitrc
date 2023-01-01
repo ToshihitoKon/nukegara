@@ -26,6 +26,7 @@ sh ~/.fehbg &
 xinput disable "SynPS/2 Synaptics TouchPad"
 xinput set-prop 'pointer:ELECOM ELECOM TrackBall Mouse' 'Coordinate Transformation Matrix' 1 0 0  0 1 0  0 0 1.8
 #xinput set-prop "TPPS/2 IBM TrackPoint" "Coordinate Transformation Matrix" 2 0 0 0 2 0 0 0 1
+xinput set-prop 'Elan TrackPoint' 'Coordinate Transformation Matrix' 2.7 0 0 0 2.7 0 0 0 1
 
 # ???
 unclutter &
