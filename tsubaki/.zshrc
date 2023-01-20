@@ -91,11 +91,6 @@ HISTFILE=~/.histfile
 HISTSIZE=1000
 SAVEHIST=1000
 
-# anyenv
-export PATH="$HOME/.anyenv/bin:$PATH"
-eval "$(anyenv init -)"
-
-
 # mecha mecha benri na command
 alias hibernate="systemctl hibernate"
 alias ss='~/.config/nukegara_scripts/ss.sh'
