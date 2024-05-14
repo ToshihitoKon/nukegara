@@ -9,3 +9,4 @@ battery_level
 battery_status
 *.tmp
 *.old
+packer_compiled.lua
