@@ -31,4 +31,4 @@ vim.opt.nrformats = "bin,hex"
 vim.opt.swapfile = false
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
-
+vim.opt.modeline = true
