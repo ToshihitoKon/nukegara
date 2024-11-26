@@ -1,0 +1,17 @@
+# .rubocop.yml
+
+AllCops:
+  DisabledByDefault: true
+  Exclude:
+    - 'gems/**/*'
+  NewCops: disable
+Bundler:
+  Enabled: true
+Gemspec:
+  Enabled: true
+Lint:
+  Enabled: true
+Security:
+  Enabled: true
+Layout:
+  Enabled: true
