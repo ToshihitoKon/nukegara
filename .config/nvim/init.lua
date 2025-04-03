@@ -1,4 +1,3 @@
-require'general'
-require'keymap'
-require'plugins'
-
+require 'general'
+require 'keymap'
+require 'plugins'

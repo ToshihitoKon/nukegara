@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 vim.keymap.set('n', '<C-t>', ':Neotree toggle<CR>')
 vim.keymap.set('n', '<C-h>', '<C-w>h')
 vim.keymap.set('n', '<C-j>', '<C-w>j')
@@ -7,6 +8,9 @@ vim.keymap.set('n', ';', '/')
 vim.keymap.set('n', '<C-c><C-c>', ':noh<CR>')
 vim.keymap.set('n', '<', ':tabprevious<CR>')
 vim.keymap.set('n', '>', ':tabnext<CR>')
+
+-- GitHub Copilot Chat
+vim.keymap.set('n', '<C-Bslash>', ':CopilotChatToggle<CR>')
 
 -- LSP
 vim.keymap.set('n', '<Space>', ':lua vim.lsp.buf.hover()<CR>')

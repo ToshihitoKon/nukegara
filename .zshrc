@@ -1,8 +1,8 @@
 export LANG=en_US.UTF-8
+export PATH="/Users/toshihitokon/.bin/:$PATH"
 export PATH="/opt/homebrew/opt/openssl@1.1/bin:$PATH"
+export EDITOR=nvim
 source ~/.zplug/init.zsh
-
-bindkey -v # set vimmode
 
 autoload -Uz compinit promptinit vcs_info colors add-zsh-hook
 compinit
@@ -41,6 +41,8 @@ bindkey -M menuselect '^I' vi-forward-char
 bindkey -M menuselect '^L' vi-forward-char
 bindkey -M menuselect '^H' vi-backward-char
 
+bindkey '^H' backward-delete-char
+bindkey '^?' backward-delete-char
 
 # vcs
 setopt prompt_subst
@@ -124,8 +126,7 @@ alias gcc="gcc -Wall"
 
 alias echo-yayoi='echo -n "ζ*'"'"'ヮ'"'"')ζ< ";echo'
 
-. /opt/homebrew/opt/asdf/libexec/asdf.sh
-export PATH=$PATH:$(go env GOPATH)/bin
+export PATH="/Users/toshihitokon/.asdf/shims:$PATH"
 
 # The next line updates PATH for the Google Cloud SDK.
 if [ -f '/Users/toshihitokon/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/toshihitokon/google-cloud-sdk/path.zsh.inc'; fi
@@ -133,3 +134,7 @@ if [ -f '/Users/toshihitokon/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/to
 # The next line enables shell command completion for gcloud.
 if [ -f '/Users/toshihitokon/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/toshihitokon/google-cloud-sdk/completion.zsh.inc'; fi
 export PATH="/opt/homebrew/opt/unzip/bin:$PATH"
+
+### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
+export PATH="/Users/toshihitokon/.rd/bin:$PATH"
+### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)

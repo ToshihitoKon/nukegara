@@ -1,3 +1,5 @@
+---@diagnostic disable: undefined-global
+
 -- vim.g.moonflyTransparent = true
 -- vim.cmd.colorscheme "moonfly"
 require("catppuccin").setup({
@@ -9,6 +11,8 @@ require("catppuccin").setup({
         gitsigns = true,
         mason = true,
         neotree = true,
+        copilot_vim = true,
+        treesitter = true,
         native_lsp = {
             enabled = true,
             virtual_text = {
@@ -33,7 +37,33 @@ require("catppuccin").setup({
 })
 vim.cmd.colorscheme "catppuccin"
 
-require('neo-tree').setup()
+require('gitsigns').setup()
+
+require('neo-tree').setup({
+    close_if_last_window = true,
+    sort_case_insensitive = false,
+
+    default_component_configs = {
+        git_status = {
+            symbols = {
+                -- NOTE: Status はいらん
+                untracked = "",
+                ignored   = "",
+                unstaged  = "",
+                staged    = "",
+            }
+        }
+    },
+    filesystem = {
+        follow_current_file = {
+            enable = true,
+        }
+    },
+    source_selector = {
+        winbar = true,
+        statusline = true
+    }
+})
 require('lualine').setup({
     options = {
         theme = "catppuccin"
@@ -62,6 +92,23 @@ require('diagflow').setup({
         return string.format("%s (%s: %s)", diagnostic.message, diagnostic.source, diagnostic.code)
     end,
 })
+
+
+require("CopilotChat").setup {
+    -- https://github.com/CopilotC-Nvim/CopilotChat.nvim?tab=readme-ov-file#configuration
+    chat_autocomplete = false,
+    system_prompt = '日本語で返答、ただし質問が英語の場合は英語で返答.敬語表現を使わず必要な情報を簡潔に出力する.Positive/Negativeの双方の意見を出す.',
+    window = {
+        layout = 'float',
+        border = 'rounded',
+        width = 0.9,
+        height = 0.9,
+    },
+    mappings = {
+        reset = { normal = "", insert = "" },
+        close = { normal = "", insert = "" },
+    }
+}
 
 require 'nvim-treesitter.configs'.setup {
     auto_install = true,
@@ -113,7 +160,8 @@ require('mason-lspconfig').setup_handlers({
 -- 2. Formatter
 require("conform").setup({
     formatters_by_ft = {
-        yaml = { "yamlfmt" }
+        yaml = { "yamlfmt" },
+        ruby = { "rubocop" },
     },
     format_on_save = {
         timeout_ms = 500,

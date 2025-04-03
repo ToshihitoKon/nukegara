@@ -1,17 +1,32 @@
 # .rubocop.yml
-
 AllCops:
   DisabledByDefault: true
   Exclude:
     - 'gems/**/*'
-  NewCops: disable
+    # NewCops: disable
 Bundler:
   Enabled: true
 Gemspec:
   Enabled: true
+Layout:
+  Enabled: true
 Lint:
+  Enabled: true
+Lint/UnusedMethodArgument:
+  AllowUnusedKeywordArguments: true
+Metrics:
+  Enabled: false
+Migration:
+  Enabled: false
+Naming:
   Enabled: true
 Security:
   Enabled: true
-Layout:
+Style:
   Enabled: true
+Style/FrozenStringLiteralComment:
+  Enabled: false
+Style/Documentation:
+  Enabled: false
+Style/StringLiterals:
+  EnforcedStyle: double_quotes

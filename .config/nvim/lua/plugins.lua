@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- This file can be loaded by calling `lua require('plugins')` from your init.vim
 
 -- Only required if you have packer configured as `opt`
@@ -34,6 +35,7 @@ return require('packer').startup(function(use)
 
     -- copliot
     use { 'github/copilot.vim' }
+    use { 'CopilotC-Nvim/CopilotChat.nvim' }
 
     -- lsp
     use { 'neovim/nvim-lspconfig' }
@@ -60,4 +62,5 @@ return require('packer').startup(function(use)
         requires = { "nvim-telescope/telescope.nvim" },
     })
     use { 'cameron-wags/rainbow_csv.nvim' }
+    use { 'lewis6991/gitsigns.nvim' }
 end)
