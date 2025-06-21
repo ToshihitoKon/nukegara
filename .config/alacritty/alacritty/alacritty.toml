@@ -1,0 +1,6 @@
+[window]
+opacity = 0.91
+
+[font]
+normal = {family = "SauceCodePro Nerd Font Mono"}
+#normal = {family = "RobotoMono Nerd Font Mono"}
