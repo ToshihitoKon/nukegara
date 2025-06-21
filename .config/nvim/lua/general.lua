@@ -39,6 +39,7 @@ vim.opt.scrolloff = 5
 
 vim.opt.background = "dark"
 
+vim.lsp.log.set_level(vim.log.levels.ERROR)
 
 vim.api.nvim_create_autocmd('ColorScheme', {
     callback = function()

@@ -38,9 +38,10 @@ require("catppuccin").setup({
 vim.cmd.colorscheme "catppuccin"
 
 require('gitsigns').setup()
+require('gitlinker').setup()
 
 require('neo-tree').setup({
-    close_if_last_window = true,
+    close_if_last_window = false,
     sort_case_insensitive = false,
 
     default_component_configs = {
@@ -62,13 +63,87 @@ require('neo-tree').setup({
     source_selector = {
         winbar = true,
         statusline = true
-    }
+    },
+    window = {
+        mappings = {
+            ["<C-f>"] = false, -- use Toggleterm
+        }
+    },
 })
+
+local function buffer_name(buf)
+    return vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
+end
+
+local function alternate_buffer_name()
+    local current = vim.fn.bufnr()
+    local alt_buf = vim.fn.bufnr("#")
+    if alt_buf == -1 or not vim.api.nvim_buf_is_valid(alt_buf) or (current == alt_buf) then
+        return ""
+    end
+    return "alt: " .. buffer_name(alt_buf)
+end
+
 require('lualine').setup({
     options = {
-        theme = "catppuccin"
-    }
+        theme = "catppuccin",
+        globalstatus = true,
+    },
+
+    extensions = { 'neo-tree', 'mason', 'toggleterm' },
+
+    tabline = {
+        lualine_a = { 'branch' },
+        lualine_b = { 'tabs' },
+        lualine_c = {
+            'filename',
+            'diagnostic',
+        },
+        lualine_x = {
+            alternate_buffer_name
+        },
+        lualine_y = {},
+        lualine_z = {}
+    },
+
+
+    -- for noice
+    -- https://github.com/folke/noice.nvim?tab=readme-ov-file#-statusline-components
+    sections = {
+        lualine_x = {
+            {
+                require("noice").api.status.message.get_hl,
+                cond = require("noice").api.status.message.has,
+            },
+            {
+                require("noice").api.status.command.get,
+                cond = require("noice").api.status.command.has,
+                color = { fg = "#ff9e64" },
+            },
+            {
+                require("noice").api.status.mode.get,
+                cond = require("noice").api.status.mode.has,
+                color = { fg = "#ff9e64" },
+            },
+            {
+                require("noice").api.status.search.get,
+                cond = require("noice").api.status.search.has,
+                color = { fg = "#ff9e64" },
+            },
+        },
+    },
 })
+
+require('toggleterm').setup({
+    open_mapping = [[<C-f>]],
+    direction = 'float',
+    float_opts = {
+        border = 'double',
+        title_pos = 'left',
+        winblend = 20,
+    },
+})
+
 require('scrollview').setup({
     excluded_filetypes = {},
     current_only = true,
@@ -78,36 +153,113 @@ require('scrollview').setup({
     signs_on_startup = { 'all' },
     diagnostics_severities = { vim.diagnostic.severity.ERROR }
 })
-require('neoscroll').setup()
+
+require('neoscroll').setup({
+    mappings = {
+        '<C-u>', '<C-d>',
+    }
+})
+
 require("go").setup()
+require("go.format").goimports()
 require('nvim_comment').setup()
-require('diagflow').setup({
-    -- https://github.com/dgagn/diagflow.nvim
-    enable = true,
-    scope = 'line', -- 'cursor', 'line' this changes the scope, so instead of showing errors under the cursor, it shows errors on the entire line
-    -- padding_top = 2,
-    padding_right = 4,
-    -- show_borders = true,
-    format = function(diagnostic)
-        return string.format("%s (%s: %s)", diagnostic.message, diagnostic.source, diagnostic.code)
-    end,
+vim.notify = require("notify")
+vim.notify.setup({
+    background_colour = "#000000",
+    render = "wrapped-compact",
+    stages = "static",
+    top_down = false
+
+})
+
+require("noice").setup({
+    cmdline = {
+        view = "cmdline_popup",
+    },
+    lsp = {
+        -- override markdown rendering so that **cmp** and other plugins use **Treesitter**
+        override = {
+            ["vim.lsp.util.convert_input_to_markdown_lines"] = true,
+            ["vim.lsp.util.stylize_markdown"] = true,
+            -- ["cmp.entry.get_documentation"] = true, -- requires hrsh7th/nvim-cmp
+        },
+    },
+    -- you can enable a preset for easier configuration
+    presets = {
+        bottom_search = true,          -- use a classic bottom cmdline for search
+        command_palette = true,        -- position the cmdline and popupmenu together
+        long_message_to_split = false, -- long messages will be sent to a split
+        inc_rename = false,            -- enables an input dialog for inc-rename.nvim
+        lsp_doc_border = false,        -- add a border to hover docs and signature help
+    },
+})
+
+require("telescope").setup {}
+require('telescope').load_extension('noice')
+
+-- diagnostic Format
+vim.diagnostic.config({
+    virtual_text = false,
+    signs = {
+        text = {
+            [vim.diagnostic.severity.ERROR] = '●',
+            [vim.diagnostic.severity.WARN] = '●',
+        },
+    },
+})
+
+require('tiny-inline-diagnostic').setup({
+    preset = "modern",
+    options = {
+        format = function(diagnostic)
+            return string.format("[%s/%s]\n%s", diagnostic.source, tostring(diagnostic.code), diagnostic.message)
+        end,
+        show_source = {
+            enabled = true,
+            if_many = false,
+        },
+        use_icons_from_diagnostic = true,
+        set_arrow_to_diag_color = true,
+        show_all_diags_on_cursorline = true,
+    },
 })
 
 
 require("CopilotChat").setup {
     -- https://github.com/CopilotC-Nvim/CopilotChat.nvim?tab=readme-ov-file#configuration
-    chat_autocomplete = false,
-    system_prompt = '日本語で返答、ただし質問が英語の場合は英語で返答.敬語表現を使わず必要な情報を簡潔に出力する.Positive/Negativeの双方の意見を出す.',
+    chat_autocomplete = true,
+
+    model = 'claude-3.7-sonnet',
+    system_prompt = [[
+あなたは日本語で返答するアシスタントです。対象のユーザーは IT エンジニアで、Golang や Ruby、Linux、ShellScript に精通しています。やりとりは敬語を使わず、必要最小限かつ簡潔に、情報を淡々と出力してください。
+ユーザーは抽象的なアイデアから具体的なコード実装までのやり取りを繰り返す傾向があり、過剰な説明や前置きは不要です。Markdown を好み、構造化された情報出力を重視します。技術的な議論では論理的・機能的な応答を重視し、雑談やクリエイティブな内容ではユーモアも受け入れます。
+また、ユーザーは繰り返しの修正を通じて最適な表現を探すため、やりとりは一度で完結せず、段階的に洗練されていくものとして対応してください。
+]],
+    prompts = {
+        Explain = {
+            prompt = '説明してください',
+        },
+        Review = {
+            prompt = 'レビューしてください',
+        },
+    },
+
+    question_header = '# 俺 ', -- Header to use for user questions
+    answer_header = '# (*>△<) ', -- Header to use for AI answers
+    error_header = '# ヤバ ', -- Header to use for errors
+    separator = '===', -- Separator to use in chat
+
     window = {
         layout = 'float',
         border = 'rounded',
         width = 0.9,
         height = 0.9,
+        winblend = 25,
     },
     mappings = {
         reset = { normal = "", insert = "" },
         close = { normal = "", insert = "" },
-    }
+    },
 }
 
 require 'nvim-treesitter.configs'.setup {
@@ -135,7 +287,7 @@ require("hlchunk").setup({
     }
 })
 require 'rainbow_csv'.setup()
-local cmp = require('cmp')
+
 
 -- local capabilities = require('cmp_nvim_lsp').default_capabilities()
 -- local lspkind = require('lspkind')
@@ -160,16 +312,21 @@ require('mason-lspconfig').setup_handlers({
 -- 2. Formatter
 require("conform").setup({
     formatters_by_ft = {
-        yaml = { "yamlfmt" },
         ruby = { "rubocop" },
+        yaml = { "prettier" },
+        typescript = { "prettier" },
+        json = { "prettier" },
+        javascript = { "prettier" },
+        terraform = { "terraform fmt" }
     },
     format_on_save = {
-        timeout_ms = 500,
+        timeout_ms = 2000,
         lsp_format = "fallback",
     },
 })
 
 -- 3. Completion
+local cmp = require('cmp')
 cmp.setup({
     snippet = {
         expand = function(args)
@@ -189,16 +346,14 @@ cmp.setup({
     sources = cmp.config.sources({
         { name = 'nvim_lsp' },
     }),
-    -- formatting = {
-    --     format = lspkind.cmp_format()
-    -- }
-})
 
--- diagnostic Format
-vim.diagnostic.config({
-    virtual_text = {
-        format = function(diagnostic)
-            return string.format("%s", diagnostic.code)
-        end,
-    },
+    cmp.setup.cmdline(':', {
+        mapping = cmp.mapping.preset.cmdline(),
+        sources = cmp.config.sources({
+            { name = 'path' }
+        }, {
+            { name = 'cmdline' }
+        }),
+        matching = { disallow_symbol_nonprefix_matching = false }
+    })
 })

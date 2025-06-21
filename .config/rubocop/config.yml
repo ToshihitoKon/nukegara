@@ -2,26 +2,35 @@
 AllCops:
   DisabledByDefault: true
   Exclude:
-    - 'gems/**/*'
+    - "gems/**/*"
     # NewCops: disable
+
 Bundler:
   Enabled: true
+
 Gemspec:
   Enabled: true
+
 Layout:
   Enabled: true
+
 Lint:
   Enabled: true
 Lint/UnusedMethodArgument:
   AllowUnusedKeywordArguments: true
+
 Metrics:
   Enabled: false
+
 Migration:
   Enabled: false
+
 Naming:
   Enabled: true
+
 Security:
   Enabled: true
+
 Style:
   Enabled: true
 Style/FrozenStringLiteralComment:
@@ -30,3 +39,13 @@ Style/Documentation:
   Enabled: false
 Style/StringLiterals:
   EnforcedStyle: double_quotes
+Style/SymbolArray:
+  Enabled: false
+Style/NumericLiterals:
+  Enabled: false
+Style/WordArray:
+  Enabled: false
+Style/RescueModifier:
+  Enabled: false
+Style/BarePercentLiterals:
+  Enabled: false

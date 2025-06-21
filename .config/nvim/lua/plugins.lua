@@ -1,23 +1,33 @@
 ---@diagnostic disable: undefined-global
 -- This file can be loaded by calling `lua require('plugins')` from your init.vim
 
--- Only required if you have packer configured as `opt`
-vim.cmd [[packadd packer.nvim]]
+local function bootstrap_pckr()
+    local pckr_path = vim.fn.stdpath("data") .. "/pckr/pckr.nvim"
 
-return require('packer').startup(function(use)
-    -- use { '' }
-    -- Packer can manage itself
-    use 'wbthomason/packer.nvim'
+    if not (vim.uv or vim.loop).fs_stat(pckr_path) then
+        vim.fn.system({
+            'git',
+            'clone',
+            "--filter=blob:none",
+            'https://github.com/lewis6991/pckr.nvim',
+            pckr_path
+        })
+    end
 
+    vim.opt.rtp:prepend(pckr_path)
+end
+
+bootstrap_pckr()
+
+require('pckr').add {
     -- Color schema
-    use { "catppuccin/nvim", as = "catppuccin" }
-    -- use { "bluz71/vim-moonfly-colors", as = "moonfly" }
+    { "catppuccin/nvim",            as = "catppuccin" },
+    { "nvim-tree/nvim-web-devicons" },
 
     -- status line
-    use { 'nvim-tree/nvim-web-devicons' }
-    use { 'nvim-lualine/lualine.nvim', }
+    { 'nvim-lualine/lualine.nvim' },
 
-    use {
+    {
         "nvim-neo-tree/neo-tree.nvim",
         branch = "v3.x",
         requires = {
@@ -25,42 +35,57 @@ return require('packer').startup(function(use)
             "MunifTanjim/nui.nvim",
             -- "3rd/image.nvim", -- Optional image support in preview window: See `# Preview Mode` for more information
         }
-    }
-    -- use { "petertriho/nvim-scrollbar" }
-    use { "dstein64/nvim-scrollview" }
-    use { 'karb94/neoscroll.nvim' }
-    use { "terrortylor/nvim-comment" }
-    use { 'ray-x/guihua.lua' } -- recommended if need floating window support
-    use { 'nvim-treesitter/nvim-treesitter' }
+    },
+
+    { "dstein64/nvim-scrollview" },
+    { "karb94/neoscroll.nvim" },
+    { "terrortylor/nvim-comment" },
+    { 'ray-x/guihua.lua' }, -- recommended if need floating window support
+    { 'nvim-treesitter/nvim-treesitter',       { 'do', ':TSUpdate' } },
 
     -- copliot
-    use { 'github/copilot.vim' }
-    use { 'CopilotC-Nvim/CopilotChat.nvim' }
+    { 'github/copilot.vim' },
+    { 'CopilotC-Nvim/CopilotChat.nvim' },
 
     -- lsp
-    use { 'neovim/nvim-lspconfig' }
-    use { "williamboman/mason.nvim" }
-    use { "williamboman/mason-lspconfig.nvim" }
-    use { "lukas-reineke/lsp-format.nvim" }
-    use { 'dgagn/diagflow.nvim' }
+    { 'neovim/nvim-lspconfig' },
+    { "williamboman/mason.nvim" },
+    { "williamboman/mason-lspconfig.nvim" },
+    { "lukas-reineke/lsp-format.nvim" },
+    -- { 'dgagn/diagflow.nvim' },
+    { 'rachartier/tiny-inline-diagnostic.nvim' },
 
     -- formatter
-    use { "stevearc/conform.nvim" }
+    { "stevearc/conform.nvim" },
 
     -- completion
-    use { 'hrsh7th/nvim-cmp' }
-    use { 'hrsh7th/cmp-nvim-lsp' }
-    -- use { 'onsails/lspkind.nvim' }
-
-    -- golang
-    use { 'ray-x/go.nvim' }
+    { 'hrsh7th/nvim-cmp' },
+    { 'hrsh7th/cmp-nvim-lsp' },
+    { 'onsails/lspkind.nvim' },
+    { 'hrsh7th/cmp-buffer' },
+    { 'hrsh7th/cmp-path' },
+    { 'hrsh7th/cmp-cmdline' },
+    { 'folke/which-key.nvim' },
 
     -- utils
-    use { 'shellRaining/hlchunk.nvim' }
-    use({
-        "kelly-lin/telescope-ag",
-        requires = { "nvim-telescope/telescope.nvim" },
-    })
-    use { 'cameron-wags/rainbow_csv.nvim' }
-    use { 'lewis6991/gitsigns.nvim' }
-end)
+    {
+        'akinsho/toggleterm.nvim',
+        tag = '*'
+    },
+    { 'shellRaining/hlchunk.nvim' },
+    { "nvim-telescope/telescope.nvim" },
+    { "kelly-lin/telescope-ag" },
+    { 'cameron-wags/rainbow_csv.nvim' },
+    { 'lewis6991/gitsigns.nvim' },
+    {
+        'ruifm/gitlinker.nvim',
+        requires = 'nvim-lua/plenary.nvim'
+    },
+    { 'rcarriga/nvim-notify' },
+    { 'folke/noice.nvim' },
+
+    -- golang
+    { 'ray-x/go.nvim' },
+
+    -- お遊び
+}
