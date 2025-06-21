@@ -17,6 +17,7 @@ vim.opt.hlsearch = true
 vim.opt.hidden = true
 vim.opt.backup = true
 vim.opt.backupdir = os.getenv("HOME") .. '/.vim/backup'
+vim.opt.swapfile = false
 vim.opt.winblend = 20
 vim.opt.pumblend = 20
 vim.opt.termguicolors = true
@@ -28,7 +29,22 @@ vim.opt.smartindent = true
 vim.opt.number = true
 vim.opt.wrap = false
 vim.opt.nrformats = "bin,hex"
-vim.opt.swapfile = false
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
 vim.opt.modeline = true
+vim.opt.cursorline = true
+vim.opt.mouse = ''
+
+vim.opt.background = "dark"
+
+
+vim.api.nvim_create_autocmd('ColorScheme', {
+    callback = function()
+        vim.api.nvim_set_hl(0, 'CopilotSuggestion', {
+            fg = '#555555',
+            underdotted = true,
+            ctermfg = 8,
+            force = true
+        })
+    end
+})

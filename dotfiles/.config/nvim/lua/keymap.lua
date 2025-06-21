@@ -7,3 +7,6 @@ vim.keymap.set('n', ';', '/')
 vim.keymap.set('n', '<C-c><C-c>', ':noh<CR>')
 vim.keymap.set('n', '<', ':tabprevious<CR>')
 vim.keymap.set('n', '>', ':tabnext<CR>')
+
+-- LSP
+vim.keymap.set('n', '<Space>', ':lua vim.lsp.buf.hover()<CR>')

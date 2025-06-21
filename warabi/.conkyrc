@@ -1,0 +1,56 @@
+conky.config = {
+    use_xft= true,
+    xftalpha= .1,
+    update_interval= 1,
+    total_run_times= 0,
+
+    background= true,
+
+    own_window= true,
+    own_window_type= 'override',
+    own_window_transparent= false,
+    own_window_hints= 'undecorated,below,sticky,skip_taskbar,skip_pager',
+    own_window_colour= '000',
+    own_window_argb_visual= true,
+    own_window_argb_value= 96,
+
+    double_buffer= true,
+
+    minimum_width= 270,
+    maximum_width= 270,
+
+    minimum_height= 10,
+
+    draw_shades= false,
+    draw_outline= false,
+    draw_borders= false,
+    draw_graph_borders= false,
+
+    alignment= 'top_right',
+    gap_x= 0,
+    gap_y= 0,
+    no_buffers= true,
+    text_buffer_size = 2048,
+    uppercase= false,
+    cpu_avg_samples= 4,
+    net_avg_samples = 2,
+    override_utf8_locale= true,
+
+    font= 'Ubuntu:style=medium:size=9'
+}
+
+conky.text = [[
+    ${battery_bar}
+    ${color orange}Battery: $alignr ${color}${battery}
+    ${hr}
+    ${font Open Sans:size=44}$alignr${time %H:%M}$font
+    ${hr}
+    ${color orange}Hostname: $alignr ${color}${nodename}
+    ${color orange}Kernel: $alignr ${color}${sysname} ${kernel} on ${machine}
+    ${color orange}Uptime: $alignr ${color}${uptime}
+    ${hr}
+    Usage $alignr $cpu %
+    ${cpubar}
+    Temperature $alignr ${acpitemp}°C
+]]
+
