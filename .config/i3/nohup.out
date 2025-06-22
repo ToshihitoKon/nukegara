@@ -1,0 +1,6 @@
+[ 05/26/2024 20:12:28.951 x_log_error WARN ] X error 3 WINDOW request 2 minor 0 serial 153112
+[ 05/26/2024 20:12:37.058 x_log_error WARN ] X error 3 WINDOW request 2 minor 0 serial 159147
+[ 05/26/2024 20:17:00.493 x_log_error WARN ] X error 3 WINDOW request 2 minor 0 serial 198062
+[ 05/26/2024 20:18:35.716 x_log_error WARN ] X error 3 WINDOW request 2 minor 0 serial 219036
+[ 05/26/2024 20:18:42.285 x_log_error WARN ] X error 3 WINDOW request 2 minor 0 serial 223194
+[ 05/26/2024 20:45:16.806 x_new_id FATAL ERROR ] We seems to have run of XIDs. This is either a bug in the X server, or a resource leakage in the compositor. Please open an issue about this problem. The compositor will die.
