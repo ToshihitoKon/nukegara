@@ -28,6 +28,7 @@ vim.opt.expandtab = true
 vim.opt.autoindent = true
 vim.opt.smartindent = true
 vim.opt.number = true
+vim.opt.numberwidth = 2
 vim.opt.wrap = false
 vim.opt.nrformats = "bin,hex"
 vim.opt.ignorecase = true
@@ -40,14 +41,3 @@ vim.opt.scrolloff = 5
 vim.opt.background = "dark"
 
 vim.lsp.log.set_level(vim.log.levels.ERROR)
-
-vim.api.nvim_create_autocmd('ColorScheme', {
-    callback = function()
-        vim.api.nvim_set_hl(0, 'CopilotSuggestion', {
-            fg = '#555555',
-            underdotted = true,
-            ctermfg = 8,
-            force = true
-        })
-    end
-})

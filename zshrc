@@ -1,3 +1,6 @@
+# zmodload zsh/zprof
+
+echo "Starting .zshrc configuration..."
 export LANG=en_US.UTF-8
 export PATH="/Users/toshihitokon/.bin/:$PATH"
 export PATH="/opt/homebrew/opt/openssl@1.1/bin:$PATH"
@@ -5,27 +8,15 @@ export EDITOR=nvim
 export LESS='-RSX +G'
 export FZF_DEFAULT_OPTS='--reverse --highlight-line'
 
-autoload -Uz compinit promptinit vcs_info colors add-zsh-hook
-compinit
-promptinit
-colors
+echo "Loading plugins using sheldone..."
+eval "$(sheldon source)"
 
-source ~/.zplug/init.zsh
-zplug 'zplug/zplug', hook-build:'zplug --self-manage'
-zplug "zsh-users/zsh-syntax-highlighting"
-zplug "zsh-users/zsh-autosuggestions"
-zplug "zsh-users/zsh-completions"
-zplug "chrissicool/zsh-256color"
-zplug "Aloxaf/fzf-tab"
-if ! zplug check --verbose; then
-    printf "Install? [y/N]: "
-    if read -q; then
-        echo; zplug install
-    fi
-fi
-zplug load
+autoload -Uz compinit && compinit
+autoload -Uz promptinit && promptinit
+autoload -Uz colors && colors
+autoload -Uz vcs_info add-zsh-hook
 
-
+echo "Setting up zsh options and keybindings..."
 # 補完関連
 # zstyle ':completion:*' menu true select interactive
 zstyle ":completion:*:commands" rehash 1
@@ -92,7 +83,6 @@ zstyle ':fzf-tab:*' fzf-command ftb-tmux-popup
 # bindkey -M menuselect '^H' vi-backward-char
 
 bindkey '^H' backward-delete-char
-# bindkey '^?' backward-delete-char
 
 # vcs
 setopt prompt_subst
@@ -103,6 +93,7 @@ zstyle ':vcs_info:*' formats " [%F{green}%s:%c%u%b%F{224}]"
 zstyle ':vcs_info:*' actionformats '[%b|%a]'
 zstyle ':vcs_info:*' check-for-changes true
 
+echo "Setting hooks..."
 precmd_vcs_info() {
     vcs_info
 }
@@ -113,22 +104,23 @@ add_newline() {
     PS1_NEWLINE_LOGIN=true
   else
     local current_time=$(date "+%H:%M:%S")
-    local remaining_width=$(($(tput cols) - ${#current_time} - 6))  # 6文字分（左右の空白＋ハイフン）
+    local remaining_space=$(( $(tput cols) - ${#current_time} - 6 ))
     local left_hyphens=2
-    local right_hyphens=$((remaining_width - left_hyphens))
+    local right_hyphens=$(( remaining_space - left_hyphens ))
     
-    printf "  \033[90m"  # 左の2文字空白
-    printf "%s" "$(printf '%.0s─' $(seq 1 $left_hyphens))"  # 左の2文字ハイフン
-    printf " %s " "$current_time"  # 時刻表示（前後に空白）
-    printf "%s" "$(printf '%.0s─' $(seq 1 $right_hyphens))"  # 残りのハイフン
-    printf "\033[0m  \n"  # 右の2文字空白
+    printf "  \033[90m%s %s %s\033[0m  \n" "$(printf '%.0s─' $(seq 1 $left_hyphens))"  "$current_time"  "$(printf '%.0s─' $(seq 1 $right_hyphens))"
   fi
 }
 add-zsh-hook precmd add_newline
 
-aws_vault_info() {
+aws_info() {
+    if [ ! -z "${AWS_PROFILE}" ]; then
+        echo " [ aws(profile): %F{green}${AWS_PROFILE}%f ]"
+        return
+    fi
     if [ ! -z "${AWS_VAULT}" ]; then
-        echo " [ aws: %F{green}${AWS_VAULT}%f ]"
+        echo " [ aws(vault): %F{green}${AWS_VAULT}%f ]"
+        return
     fi
 }
 
@@ -156,16 +148,19 @@ shorten_path() {
   echo "${shortened_path}/"
 }
 
-PROMPT='%B%U%F{224} [ %D{%Y/%m/%d %H:%M:%S} ] [ %F{green}$(shorten_path)%F{224} ]${vcs_info_msg_0_}$(aws_vault_info)$(envchain_info)%u%b
+echo "Setting up prompt..."
+PROMPT='%B%U%F{224} [ %D{%Y/%m/%d %H:%M:%S} ] [ %F{green}$(shorten_path)%F{224} ]${vcs_info_msg_0_}$(aws_info)$(envchain_info)%u%b
 %(?.%F{green}.%F{red})%?%f %F{yellow}(*>△<)%(?..<ﾅｰﾝｯ)%f %# '
 PROMPT2="%F{yellow}(*>△<)..%f > "
 
+echo "Setting histories..."
 # history search
 autoload history-search-end
 zle -N history-beginning-search-backward-end history-search-end
 zle -N history-beginning-search-forward-end history-search-end
 bindkey "^p" history-beginning-search-backward-end
 bindkey "^o" history-beginning-search-forward-end
+unset zle_bracketed_paste
 
 setopt hist_ignore_all_dups
 setopt hist_ignore_space
@@ -181,18 +176,12 @@ HISTSIZE=1000
 SAVEHIST=1000
 
 # mecha mecha benri na command
-alias hibernate="systemctl hibernate"
-alias ss='~/.config/nukegara_scripts/ss.sh'
 alias localhosting="python -m http.server"
-alias temamount="sudo mount -o 'uid=1000,gid=1000'"
 alias tma="tmux a -t \$(tmux ls | grep -v attached | fzf --tmux | sed -e 's/^\\(.*\\)[?:] .*$/\\1/g')"
 
 alias rm="rm -i"
 alias less="less -MR"
 alias ls="ls --color=always -1"
-alias gcc="gcc -Wall"
-
-alias echo-yayoi='echo -n "ζ*'"'"'ヮ'"'"')ζ< ";echo'
 
 export PATH="/Users/toshihitokon/.asdf/shims:$PATH"
 
@@ -206,3 +195,9 @@ export PATH="/opt/homebrew/opt/unzip/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
 export PATH="/Users/toshihitokon/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
+
+. "$HOME/.local/bin/env"
+
+if (which zprof > /dev/null 2>&1) ;then
+  zprof
+fi

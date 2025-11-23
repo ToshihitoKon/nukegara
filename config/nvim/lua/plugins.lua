@@ -20,40 +20,55 @@ end
 bootstrap_pckr()
 
 require('pckr').add {
-    -- Color schema
-    { "catppuccin/nvim",            as = "catppuccin" },
+    -- Color scheme
+    { "catppuccin/nvim",              as = "catppuccin" },
     { "nvim-tree/nvim-web-devicons" },
 
-    -- status line
+    -- Style
+    { 'cameron-wags/rainbow_csv.nvim' },
+    { 'rcarriga/nvim-notify' },
+    { 'folke/noice.nvim' },
     { 'nvim-lualine/lualine.nvim' },
+    { 'shellRaining/hlchunk.nvim' },
+    { 'lewis6991/gitsigns.nvim' },
+    { 'luukvbaal/statuscol.nvim' },
 
+    -- Neo-tree
     {
         "nvim-neo-tree/neo-tree.nvim",
-        branch = "v3.x",
+        -- branch = "v3.x",
+        tag = "3.33",
         requires = {
             "nvim-lua/plenary.nvim",
             "MunifTanjim/nui.nvim",
             -- "3rd/image.nvim", -- Optional image support in preview window: See `# Preview Mode` for more information
-        }
+        },
+        lazy = false, -- neo-tree will lazily load itself
     },
 
     { "dstein64/nvim-scrollview" },
     { "karb94/neoscroll.nvim" },
     { "terrortylor/nvim-comment" },
     { 'ray-x/guihua.lua' }, -- recommended if need floating window support
-    { 'nvim-treesitter/nvim-treesitter',       { 'do', ':TSUpdate' } },
+    { 'nvim-treesitter/nvim-treesitter', { 'do', ':TSUpdate' } },
 
-    -- copliot
+    -- copilot
     { 'github/copilot.vim' },
-    { 'CopilotC-Nvim/CopilotChat.nvim' },
+
+    -- Claude Code
+    {
+        'greggh/claude-code.nvim',
+        requires = {
+            'nvim-lua/plenary.nvim', -- Required for git operations
+        }
+    },
 
     -- lsp
     { 'neovim/nvim-lspconfig' },
-    { "williamboman/mason.nvim" },
-    { "williamboman/mason-lspconfig.nvim" },
-    { "lukas-reineke/lsp-format.nvim" },
-    -- { 'dgagn/diagflow.nvim' },
+    { "mason-org/mason.nvim" },
+    { "mason-org/mason-lspconfig.nvim" },
     { 'rachartier/tiny-inline-diagnostic.nvim' },
+    { 'nvimdev/lspsaga.nvim' },
 
     -- formatter
     { "stevearc/conform.nvim" },
@@ -65,27 +80,24 @@ require('pckr').add {
     { 'hrsh7th/cmp-buffer' },
     { 'hrsh7th/cmp-path' },
     { 'hrsh7th/cmp-cmdline' },
-    { 'folke/which-key.nvim' },
 
     -- utils
+    { 'folke/which-key.nvim' },
+    {
+        "goolord/alpha-nvim",
+        dependencies = { 'nvim-tree/nvim-web-devicons' },
+    },
     {
         'akinsho/toggleterm.nvim',
         tag = '*'
     },
-    { 'shellRaining/hlchunk.nvim' },
     { "nvim-telescope/telescope.nvim" },
     { "kelly-lin/telescope-ag" },
-    { 'cameron-wags/rainbow_csv.nvim' },
-    { 'lewis6991/gitsigns.nvim' },
     {
         'ruifm/gitlinker.nvim',
         requires = 'nvim-lua/plenary.nvim'
     },
-    { 'rcarriga/nvim-notify' },
-    { 'folke/noice.nvim' },
-
-    -- golang
-    { 'ray-x/go.nvim' },
+    { 'simeji/winresizer' },
 
     -- お遊び
 }

@@ -19,3 +19,6 @@ vim.keymap.set('n', '<C-b><C-b>', ':Telescope buffers<CR>', { silent = true })
 vim.keymap.set('n', '<C-b><C-q>', ':bdelete<CR>', { silent = true })
 vim.keymap.set('n', '<C-b><C-a>', ':%bd<CR>', { silent = true })
 vim.keymap.set('n', '<', ':b#<CR>', { silent = true })
+
+-- Terminal
+vim.keymap.set('t', '<C-p>', '<C-Bslash><C-N><C-c>', { silent = true })

@@ -5,7 +5,7 @@
 require("catppuccin").setup({
     flavour = "mocha",
     transparent_background = true,
-    integrated = {
+    integrations = {
         -- https://github.com/catppuccin/nvim?tab=readme-ov-file#integrations
         cmp = true,
         gitsigns = true,
@@ -37,8 +37,38 @@ require("catppuccin").setup({
 })
 vim.cmd.colorscheme "catppuccin"
 
+-- alpha
+local startify = require("alpha.themes.startify")
+startify.file_icons.provider = "devicons"
+require("alpha").setup(
+    startify.config
+)
+
 require('gitsigns').setup()
 require('gitlinker').setup()
+
+local builtin = require('statuscol.builtin')
+require('statuscol').setup({
+    relculright = true,
+    bt_ignore = { 'terminal', 'nofile' },
+    segments = {
+        {
+            sign = {
+                namespace = { 'gitsigns' },
+            },
+        },
+        {
+            sign = {
+                namespace = { 'diagnostic' },
+            },
+        },
+        {
+            text = { builtin.lnumfunc },
+        },
+        { text = { ' ' } },
+    },
+
+})
 
 require('neo-tree').setup({
     close_if_last_window = false,
@@ -160,8 +190,6 @@ require('neoscroll').setup({
     }
 })
 
-require("go").setup()
-require("go.format").goimports()
 require('nvim_comment').setup()
 vim.notify = require("notify")
 vim.notify.setup({
@@ -225,41 +253,15 @@ require('tiny-inline-diagnostic').setup({
 })
 
 
-require("CopilotChat").setup {
-    -- https://github.com/CopilotC-Nvim/CopilotChat.nvim?tab=readme-ov-file#configuration
-    chat_autocomplete = true,
-
-    model = 'claude-3.7-sonnet',
-    system_prompt = [[
-あなたは日本語で返答するアシスタントです。対象のユーザーは IT エンジニアで、Golang や Ruby、Linux、ShellScript に精通しています。やりとりは敬語を使わず、必要最小限かつ簡潔に、情報を淡々と出力してください。
-ユーザーは抽象的なアイデアから具体的なコード実装までのやり取りを繰り返す傾向があり、過剰な説明や前置きは不要です。Markdown を好み、構造化された情報出力を重視します。技術的な議論では論理的・機能的な応答を重視し、雑談やクリエイティブな内容ではユーモアも受け入れます。
-また、ユーザーは繰り返しの修正を通じて最適な表現を探すため、やりとりは一度で完結せず、段階的に洗練されていくものとして対応してください。
-]],
-    prompts = {
-        Explain = {
-            prompt = '説明してください',
+require('claude-code').setup {
+    keymaps = {
+        toggle = {
+            normal = "<C-Bslash>",   -- Normal mode keymap for toggling Claude Code, false to disable
+            terminal = "<C-Bslash>", -- Terminal mode keymap for toggling Claude Code, false to disable
         },
-        Review = {
-            prompt = 'レビューしてください',
-        },
-    },
-
-    question_header = '# 俺 ', -- Header to use for user questions
-    answer_header = '# (*>△<) ', -- Header to use for AI answers
-    error_header = '# ヤバ ', -- Header to use for errors
-    separator = '===', -- Separator to use in chat
-
-    window = {
-        layout = 'float',
-        border = 'rounded',
-        width = 0.9,
-        height = 0.9,
-        winblend = 25,
-    },
-    mappings = {
-        reset = { normal = "", insert = "" },
-        close = { normal = "", insert = "" },
-    },
+        window_navigation = true,    -- Enable window navigation keymaps (<C-h/j/k/l>)
+        scrolling = true,            -- Enable scrolling keymaps (<C-f/b>) for page up/down
+    }
 }
 
 require 'nvim-treesitter.configs'.setup {
@@ -288,25 +290,15 @@ require("hlchunk").setup({
 })
 require 'rainbow_csv'.setup()
 
-
--- local capabilities = require('cmp_nvim_lsp').default_capabilities()
--- local lspkind = require('lspkind')
-
 require('telescope-ag').setup()
 
 -- 1. LSP Sever management
 require('mason').setup()
-require('mason-lspconfig').setup()
-require("lsp-format").setup()
-
-require('mason-lspconfig').setup_handlers({
-    function(server_name)
-        vim.o.signcolumn = "yes:1"
-        require('lspconfig')[server_name].setup({
-            on_attach = require("lsp-format").on_attach,
-            -- capabilities = capabilities,
-        })
-    end,
+require('mason-lspconfig').setup({})
+require('lspsaga').setup({
+    lightbulb = {
+        enable = false,
+    },
 })
 
 -- 2. Formatter
@@ -315,18 +307,23 @@ require("conform").setup({
         ruby = { "rubocop" },
         yaml = { "prettier" },
         typescript = { "prettier" },
+        typescriptreact = { "prettier" },
         json = { "prettier" },
         javascript = { "prettier" },
         terraform = { "terraform fmt" }
     },
-    format_on_save = {
-        timeout_ms = 2000,
-        lsp_format = "fallback",
-    },
+    format_on_save = function(bufnr)
+        -- Disable with a global or buffer-local variable
+        if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
+            return
+        end
+        return { timeout_ms = 2000, lsp_format = "fallback" }
+    end,
 })
 
 -- 3. Completion
 local cmp = require('cmp')
+local lspkind = require('lspkind')
 cmp.setup({
     snippet = {
         expand = function(args)
@@ -345,15 +342,29 @@ cmp.setup({
     }),
     sources = cmp.config.sources({
         { name = 'nvim_lsp' },
+        { name = 'path' }
     }),
+    formatting = {
+        format = lspkind.cmp_format({
+            mode = 'symbol',          -- show only symbol annotations
+            maxwidth = {
+                menu = 50,            -- leading text (labelDetails)
+                abbr = 50,            -- actual suggestion item
+            },
+            ellipsis_char = '...',    -- when popup menu exceed maxwidth, the truncated part would show ellipsis_char instead (must define maxwidth first)
+            show_labelDetails = true, -- show labelDetails in menu. Disabled by default
+            before = function(entry, vim_item)
+                return vim_item
+            end
+        })
+    }
+})
 
-    cmp.setup.cmdline(':', {
-        mapping = cmp.mapping.preset.cmdline(),
-        sources = cmp.config.sources({
-            { name = 'path' }
-        }, {
-            { name = 'cmdline' }
-        }),
-        matching = { disallow_symbol_nonprefix_matching = false }
-    })
+cmp.setup.cmdline(':', {
+    mapping = cmp.mapping.preset.cmdline(),
+    sources = cmp.config.sources({
+        { name = 'path' },
+        { name = 'cmdline' }
+    }),
+    matching = { disallow_symbol_nonprefix_matching = false }
 })
