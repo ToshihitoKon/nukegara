@@ -1,0 +1,12 @@
+hosts:
+  - md5: e7d8577877bbfda3608a3c2679e56a18
+    branch: environments/macbook/2025
+    targets:
+      - target: "~/.tmux.conf"
+        nukegara: "tmux.conf"
+      - target: "~/.zshrc"
+        nukegara: "zshrc"
+      - target: "~/.config/nvim"
+        nukegara: "config/nvim"
+      - target: "~/.config/alacritty"
+        nukegara: "config/alacritty"
