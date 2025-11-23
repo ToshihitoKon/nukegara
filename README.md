@@ -1,193 +1,115 @@
 # nukegara - Environment-Specific Dotfiles Management
 
-nukegara is a dotfiles management system that uses Git branches to organize configurations for different environments. Each branch contains dotfiles and configuration files specific to a particular environment (e.g., macOS, Linux, Windows).
+A Git-based dotfiles management system that uses branches for environment-specific configurations and MD5-based host identification for automatic deployment.
 
 ## Overview
 
-This repository structure allows you to:
-- Manage multiple environment configurations in a single repository
-- Use Git worktrees to work with different environments simultaneously
-- Synchronize dotfiles between your local system and the repository
-- Track changes to configurations over time
+`nukegara` manages dotfiles across multiple environments using Git branches. Each environment has its own branch containing configuration files, and the main branch contains management scripts that automatically sync configurations based on the host machine.
+
+## Features
+
+- **Automatic host identification**: Uses MD5 hash of hostname to identify machines
+- **Branch-based environments**: Each environment lives in its own Git branch
+- **Git worktree integration**: Uses Git worktrees for concurrent environment management
+- **Smart file syncing**: Only copies files that have changed
+- **Directory support**: Can sync both individual files and entire directories
+
+## How It Works
+
+1. Each host is identified by the MD5 hash of its hostname
+2. Configuration for each host is defined in `targets.yaml`
+3. The script syncs files from the local system to the appropriate Git worktree directory
+4. Changes can be committed and pushed to the environment-specific branch
 
 ## Repository Structure
 
 ```
-nukegara/
-├── sync_dotfiles.sh      # Main synchronization script
-├── CLAUDE.md            # Claude Code instructions
-└── README.md            # This file
+.
+├── run.rb              # Main sync script
+├── targets.yaml        # Host configurations and target files
+└── <branch-name>/      # Git worktrees (not tracked)
 ```
 
-## Quick Start
+## Configuration
 
-### 1. Clone the Repository
+### targets.yaml
 
-```bash
-git clone <repository-url> nukegara
-cd nukegara
+Define your hosts and target files in `targets.yaml`:
+
+```yaml
+hosts:
+  - md5: e7d8577877bbfda3608a3c2679e56a18  # MD5 hash of hostname
+    branch: environments/macbook/2025        # Git branch for this environment
+    targets:
+      - target: "~/.tmux.conf"              # Source file on local system
+        nukegara: "tmux.conf"               # Destination in worktree
+      - target: "~/.config/nvim"            # Can also be a directory
+        nukegara: "config/nvim"
 ```
 
-### 2. Create a Worktree for Your Environment
+### Getting Your Host's MD5
+
+To find your host's MD5 hash:
 
 ```bash
-# Create a worktree for macOS 2025 environment
-git worktree add ./env-macbook environments/macbook/2025
-
-# Or for Windows environment
-git worktree add ./env-windows win11-kaede-arch
+ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`hostname\`.strip)"
 ```
 
-### 3. Apply Configuration to Your System
+## Setup
+
+1. **Create environment branch**:
 
 ```bash
-# Review differences and apply configuration
-./sync_dotfiles.sh ./env-macbook to-home
-
-# Or apply without confirmation
-./sync_dotfiles.sh ./env-macbook to-home --force
+git checkout -b environments/macbook/2025
+git push -u origin environments/macbook/2025
+git checkout main
 ```
 
-### 4. Save Local Changes Back to Repository
+2. **Create worktree**:
 
 ```bash
-# Copy current system configuration to repository
-./sync_dotfiles.sh ./env-macbook from-home
+git worktree add environments/macbook/2025 environments/macbook/2025
+```
 
-# Commit changes
-cd ./env-macbook
+3. **Configure targets.yaml**:
+
+- Add your host's MD5 hash
+- Specify the branch name
+- List files/directories to sync
+
+4. **Run sync**:
+
+```bash
+ruby run.rb
+```
+
+## Usage
+
+### Sync files to worktree
+
+```bash
+ruby run.rb
+```
+
+This will:
+1. Identify your host by MD5 hash
+2. Find matching configuration in `targets.yaml`
+3. Copy specified files/directories to the worktree
+4. Skip files that haven't changed
+
+### Commit and push changes
+
+```bash
+cd environments/macbook/2025
 git add .
-git commit -m "update dotfiles configuration"
+git commit -m "Update dotfiles"
 git push
 ```
 
-## Detailed Usage
+## Example Workflow
 
-### Working with Worktrees
-
-Git worktrees allow you to have multiple branches checked out simultaneously:
-
-```bash
-# List existing worktrees
-git worktree list
-
-# Add a new worktree
-git worktree add <path> <branch>
-
-# Remove a worktree
-git worktree remove <path>
-```
-
-### Synchronization Script
-
-The `sync_dotfiles.sh` script handles copying files between your system and the repository:
-
-```bash
-./sync_dotfiles.sh <worktree-path> <direction> [--force]
-```
-
-**Arguments:**
-- `<worktree-path>`: Path to the worktree directory
-- `<direction>`: Either `to-home` or `from-home`
-- `--force`: Skip diff confirmation (optional)
-
-**Supported Files:**
-- Dotfiles in home directory (`.zshrc`, `.vimrc`, `.tmux.conf`, etc.)
-- Configuration directories under `.config/` (`.config/alacritty`, `.config/nvim`, etc.)
-
-### Examples
-
-#### Setting up a new environment:
-```bash
-# Create worktree for new environment
-git worktree add ./my-laptop environments/macbook/2025
-
-# Apply existing configuration
-./sync_dotfiles.sh ./my-laptop to-home
-```
-
-#### Updating configuration:
-```bash
-# Make changes to your dotfiles locally
-# Then save changes back to repository
-./sync_dotfiles.sh ./my-laptop from-home
-
-# Commit and push changes
-cd ./my-laptop
-git add .
-git commit -m "feat: add new zsh aliases"
-git push
-```
-
-#### Switching between environments:
-```bash
-# Setup multiple environments
-git worktree add ./work-mac environments/macbook/2025
-git worktree add ./personal-linux environments/linux/desktop
-
-# Switch to work environment
-./sync_dotfiles.sh ./work-mac to-home
-
-# Later, switch to personal environment
-./sync_dotfiles.sh ./personal-linux to-home
-```
-
-## Available Environments
-
-- **environments/macbook/2025**: Latest macOS configuration
-- **environments/macbook/202410**: macOS configuration from October 2024
-- **win11-kaede-arch**: Windows 11 with Arch Linux subsystem
-- **warabi**: Development/testing environment
-
-## Best Practices
-
-1. **Always review changes**: Use the script without `--force` to see what will be changed
-2. **Commit regularly**: Save your configuration changes frequently
-3. **Use descriptive commit messages**: Follow conventional commit format
-4. **Test configurations**: Use the development branch for testing new configurations
-5. **Backup important files**: Keep backups of critical configuration files
-
-## Troubleshooting
-
-### Common Issues
-
-**Worktree path doesn't exist:**
-```bash
-# Make sure the worktree was created properly
-git worktree list
-```
-
-**Permission denied:**
-```bash
-# Make sure the script is executable
-chmod +x sync_dotfiles.sh
-```
-
-**Files not being detected:**
-The script looks for:
-- Dotfiles starting with `.` in the worktree root
-- Directories under `.config/` in the worktree
-
-### Getting Help
-
-```bash
-# Show script usage
-./sync_dotfiles.sh
-
-# List available branches
-git branch -a
-
-# Check worktree status
-git worktree list
-```
-
-## Contributing
-
-1. Create a new branch for your environment
-2. Add your dotfiles and configurations
-3. Test the synchronization script
-4. Submit a pull request with your changes
-
-## License
-
-This project is for personal dotfiles management. Please respect the licenses of any included configuration files or scripts.
+1. Make changes to your local dotfiles (e.g., edit `~/.tmux.conf`)
+2. Run `ruby run.rb` to sync changes to the worktree
+3. Review changes in the worktree directory
+4. Commit and push to the environment branch
+5. On another machine with the same environment, pull the changes and deploy
