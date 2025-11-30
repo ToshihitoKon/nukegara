@@ -10,3 +10,22 @@ hosts:
         nukegara: "config/nvim"
       - target: "~/.config/alacritty"
         nukegara: "config/alacritty"
+  - md5: db28692b31e785ca152cb1301a0a8010
+    branch: environments/warabi
+    targets:
+      - target: "~/.tmux.conf"
+        nukegara: "tmux.conf"
+      - target: "~/.zshrc"
+        nukegara: "zshrc"
+      - target: "~/.config/nvim"
+        nukegara: "config/nvim"
+      - target: "~/.config/alacritty"
+        nukegara: "config/alacritty"
+      - target: "~/.config/picom"
+        nukegara: "config/picom"
+      - target: "~/.config/dunst"
+        nukegara: "config/dunst"
+      - target: "~/.config/lazygit"
+        nukegara: "config/lazygit"
+      - target: "~/.config/niri"
+        nukegara: "config/niri"

@@ -52,7 +52,7 @@ hosts:
 To find your host's MD5 hash:
 
 ```bash
-ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`hostname\`.strip)"
+ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`uname -n\`.strip)"
 ```
 
 ## Setup

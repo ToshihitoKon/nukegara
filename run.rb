@@ -1,14 +1,14 @@
 # usr/bin/env ruby
-require "bundler/inline"
+require 'bundler/inline'
 gemfile do
-  source "https://rubygems.org"
-  gem "yaml"
-  gem "fileutils"
+  source 'https://rubygems.org'
+  gem 'yaml'
+  gem 'fileutils'
 end
-require "digest/md5"
+require 'digest/md5'
 
 def host_md5
-  hostname = `hostname`.strip
+  hostname = `uname -n`.strip
   Digest::MD5.hexdigest(hostname)
 end
 
@@ -17,7 +17,7 @@ def host_config(config)
     it[:md5] == host_md5
   end
   if found_configs.size != 1
-    puts "Error: Expected exactly one host configuration for this machine."
+    puts 'Error: Expected exactly one host configuration for this machine.'
     puts "MD5: #{host_md5}"
     exit 1
   end
@@ -25,11 +25,11 @@ def host_config(config)
 end
 
 def git_exist_target_worktree?(host_config)
-  Pathname(".").join(host_config[:branch]).directory?
+  Pathname('.').join(host_config[:branch]).directory?
 end
 
 def sync_plans(host_config)
-  worktree_dir = Pathname(".").join(host_config[:branch])
+  worktree_dir = Pathname('.').join(host_config[:branch])
   plans = []
 
   host_config[:targets].each do |entry|
@@ -45,7 +45,7 @@ def sync_plans(host_config)
       puts "target #{realpath} is a directory."
       basepath = Pathname(realpath)
 
-      globs = Dir.glob(File.join(realpath, "**", "*"))
+      globs = Dir.glob(File.join(realpath, '**', '*'))
       globs.each do |glob|
         next if File.directory?(glob)
 
@@ -67,7 +67,7 @@ def sync_plans(host_config)
 end
 
 # main
-config = YAML.load(File.read("targets.yaml"), symbolize_names: true)
+config = YAML.load(File.read('targets.yaml'), symbolize_names: true)
 host_config = host_config(config[:hosts])
 unless git_exist_target_worktree?(host_config)
   puts "Error: Git worktree for branch #{host_config[:branch]} does not exist."
@@ -92,4 +92,4 @@ plans.each do |plan|
   FileUtils.copy(plan[:source], plan[:destination])
 end
 
-puts "Sync completed."
+puts 'Sync completed.'

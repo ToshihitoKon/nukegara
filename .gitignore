@@ -1,12 +1,1 @@
-/.ssh/
-/.atom/
-plugged/
-xmonad-x86_64-linux
-xmonad.o
-xmonad.hi
-xmonad.errors
-battery_level
-battery_status
-*.tmp
-*.old
-packer_compiled.lua
+environments/
