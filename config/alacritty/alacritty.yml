@@ -1,0 +1,21 @@
+# https://github.com/alacritty/alacritty/blob/master/alacritty.yml
+font:
+  size: 6
+  normal:
+    family: monospace
+    style: Regular
+
+  bold:
+    family: monospace
+    style: Bold
+
+  italic:
+    family: monospace
+    style: Italic
+
+  bold_italic:
+    family: monospace
+    style: Bold Italic
+
+window:
+  opacity: 0.9
