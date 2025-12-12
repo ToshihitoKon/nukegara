@@ -97,6 +97,7 @@ require('pckr').add {
         'ruifm/gitlinker.nvim',
         requires = 'nvim-lua/plenary.nvim'
     },
+    { "folke/trouble.nvim" },
     { 'simeji/winresizer' },
 
     -- お遊び

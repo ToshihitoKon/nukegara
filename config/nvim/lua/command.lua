@@ -34,3 +34,11 @@ end, {
 --- default: disable autoformat
 vim.b.disable_autoformat = true
 vim.g.disable_autoformat = true
+
+
+vim.api.nvim_create_user_command("LspDeleteLog", function()
+    local log_path = vim.lsp.get_log_path()
+    os.remove(log_path)
+end, {
+    desc = "Delete LSP log file",
+})

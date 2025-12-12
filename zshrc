@@ -153,6 +153,12 @@ PROMPT='%B%U%F{224} [ %D{%Y/%m/%d %H:%M:%S} ] [ %F{green}$(shorten_path)%F{224} 
 %(?.%F{green}.%F{red})%?%f %F{yellow}(*>△<)%(?..<ﾅｰﾝｯ)%f %# '
 PROMPT2="%F{yellow}(*>△<)..%f > "
 
+function set-share-ps1 {    
+    PROMPT='%B%U%F{224} [ %D{%Y/%m/%d %H:%M:%S} ] [ %F{green}$(shorten_path)%F{224} ]${vcs_info_msg_0_}$(aws_info)$(envchain_info)%u%b
+%(?.%F{green}.%F{red})%?%f %# '
+    PROMPT2=" > "
+}
+
 echo "Setting histories..."
 # history search
 autoload history-search-end

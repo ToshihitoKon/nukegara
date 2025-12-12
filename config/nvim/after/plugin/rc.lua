@@ -222,9 +222,10 @@ require("noice").setup({
     },
 })
 
-require("telescope").setup {}
-require('telescope').load_extension('noice')
+-- Trouble: LSP Diagnostics viewer
+require('trouble').setup {}
 
+local telescope = require("telescope")
 -- diagnostic Format
 vim.diagnostic.config({
     virtual_text = false,
@@ -235,6 +236,9 @@ vim.diagnostic.config({
         },
     },
 })
+
+require("telescope").setup {}
+require('telescope').load_extension('noice')
 
 require('tiny-inline-diagnostic').setup({
     preset = "modern",
