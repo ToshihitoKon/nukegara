@@ -37,8 +37,38 @@ require("catppuccin").setup({
 })
 vim.cmd.colorscheme "catppuccin"
 
+-- alpha
+local startify = require("alpha.themes.startify")
+startify.file_icons.provider = "devicons"
+require("alpha").setup(
+    startify.config
+)
+
 require('gitsigns').setup()
 require('gitlinker').setup()
+
+local builtin = require('statuscol.builtin')
+require('statuscol').setup({
+    relculright = true,
+    bt_ignore = { 'terminal', 'nofile' },
+    segments = {
+        {
+            sign = {
+                namespace = { 'gitsigns' },
+            },
+        },
+        {
+            sign = {
+                namespace = { 'diagnostic' },
+            },
+        },
+        {
+            text = { builtin.lnumfunc },
+        },
+        { text = { ' ' } },
+    },
+
+})
 
 require('neo-tree').setup({
     close_if_last_window = false,
@@ -192,9 +222,10 @@ require("noice").setup({
     },
 })
 
-require("telescope").setup {}
-require('telescope').load_extension('noice')
+-- Trouble: LSP Diagnostics viewer
+require('trouble').setup {}
 
+local telescope = require("telescope")
 -- diagnostic Format
 vim.diagnostic.config({
     virtual_text = false,
@@ -205,6 +236,9 @@ vim.diagnostic.config({
         },
     },
 })
+
+require("telescope").setup {}
+require('telescope').load_extension('noice')
 
 require('tiny-inline-diagnostic').setup({
     preset = "modern",
@@ -260,15 +294,16 @@ require("hlchunk").setup({
 })
 require 'rainbow_csv'.setup()
 
--- local capabilities = require('cmp_nvim_lsp').default_capabilities()
--- local lspkind = require('lspkind')
-
 require('telescope-ag').setup()
 
 -- 1. LSP Sever management
 require('mason').setup()
-require('mason-lspconfig').setup()
-require("lsp-format").setup()
+require('mason-lspconfig').setup({})
+require('lspsaga').setup({
+    lightbulb = {
+        enable = false,
+    },
+})
 
 -- 2. Formatter
 require("conform").setup({
@@ -276,18 +311,23 @@ require("conform").setup({
         ruby = { "rubocop" },
         yaml = { "prettier" },
         typescript = { "prettier" },
+        typescriptreact = { "prettier" },
         json = { "prettier" },
         javascript = { "prettier" },
         terraform = { "terraform fmt" }
     },
-    format_on_save = {
-        timeout_ms = 2000,
-        lsp_format = "fallback",
-    },
+    format_on_save = function(bufnr)
+        -- Disable with a global or buffer-local variable
+        if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
+            return
+        end
+        return { timeout_ms = 2000, lsp_format = "fallback" }
+    end,
 })
 
 -- 3. Completion
 local cmp = require('cmp')
+local lspkind = require('lspkind')
 cmp.setup({
     snippet = {
         expand = function(args)
@@ -306,15 +346,29 @@ cmp.setup({
     }),
     sources = cmp.config.sources({
         { name = 'nvim_lsp' },
+        { name = 'path' }
     }),
+    formatting = {
+        format = lspkind.cmp_format({
+            mode = 'symbol',          -- show only symbol annotations
+            maxwidth = {
+                menu = 50,            -- leading text (labelDetails)
+                abbr = 50,            -- actual suggestion item
+            },
+            ellipsis_char = '...',    -- when popup menu exceed maxwidth, the truncated part would show ellipsis_char instead (must define maxwidth first)
+            show_labelDetails = true, -- show labelDetails in menu. Disabled by default
+            before = function(entry, vim_item)
+                return vim_item
+            end
+        })
+    }
+})
 
-    cmp.setup.cmdline(':', {
-        mapping = cmp.mapping.preset.cmdline(),
-        sources = cmp.config.sources({
-            { name = 'path' }
-        }, {
-            { name = 'cmdline' }
-        }),
-        matching = { disallow_symbol_nonprefix_matching = false }
-    })
+cmp.setup.cmdline(':', {
+    mapping = cmp.mapping.preset.cmdline(),
+    sources = cmp.config.sources({
+        { name = 'path' },
+        { name = 'cmdline' }
+    }),
+    matching = { disallow_symbol_nonprefix_matching = false }
 })

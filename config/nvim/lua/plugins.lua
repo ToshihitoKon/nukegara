@@ -21,15 +21,23 @@ bootstrap_pckr()
 
 require('pckr').add {
     -- Color scheme
-    { "catppuccin/nvim",            as = "catppuccin" },
+    { "catppuccin/nvim",              as = "catppuccin" },
     { "nvim-tree/nvim-web-devicons" },
 
-    -- status line
+    -- Style
+    { 'cameron-wags/rainbow_csv.nvim' },
+    { 'rcarriga/nvim-notify' },
+    { 'folke/noice.nvim' },
     { 'nvim-lualine/lualine.nvim' },
+    { 'shellRaining/hlchunk.nvim' },
+    { 'lewis6991/gitsigns.nvim' },
+    { 'luukvbaal/statuscol.nvim' },
 
+    -- Neo-tree
     {
         "nvim-neo-tree/neo-tree.nvim",
-        branch = "v3.x",
+        -- branch = "v3.x",
+        tag = "3.33",
         requires = {
             "nvim-lua/plenary.nvim",
             "MunifTanjim/nui.nvim",
@@ -46,7 +54,6 @@ require('pckr').add {
 
     -- copilot
     { 'github/copilot.vim' },
-    -- { 'CopilotC-Nvim/CopilotChat.nvim' },
 
     -- Claude Code
     {
@@ -55,13 +62,13 @@ require('pckr').add {
             'nvim-lua/plenary.nvim', -- Required for git operations
         }
     },
+
     -- lsp
     { 'neovim/nvim-lspconfig' },
-    { "williamboman/mason.nvim" },
-    { "williamboman/mason-lspconfig.nvim" },
-    { "lukas-reineke/lsp-format.nvim" },
-    -- { 'dgagn/diagflow.nvim' },
+    { "mason-org/mason.nvim" },
+    { "mason-org/mason-lspconfig.nvim" },
     { 'rachartier/tiny-inline-diagnostic.nvim' },
+    { 'nvimdev/lspsaga.nvim' },
 
     -- formatter
     { "stevearc/conform.nvim" },
@@ -73,28 +80,25 @@ require('pckr').add {
     { 'hrsh7th/cmp-buffer' },
     { 'hrsh7th/cmp-path' },
     { 'hrsh7th/cmp-cmdline' },
-    { 'folke/which-key.nvim' },
 
     -- utils
+    { 'folke/which-key.nvim' },
+    {
+        "goolord/alpha-nvim",
+        dependencies = { 'nvim-tree/nvim-web-devicons' },
+    },
     {
         'akinsho/toggleterm.nvim',
         tag = '*'
     },
-    { 'shellRaining/hlchunk.nvim' },
     { "nvim-telescope/telescope.nvim" },
     { "kelly-lin/telescope-ag" },
-    { 'cameron-wags/rainbow_csv.nvim' },
-    { 'lewis6991/gitsigns.nvim' },
     {
         'ruifm/gitlinker.nvim',
         requires = 'nvim-lua/plenary.nvim'
     },
-    { 'rcarriga/nvim-notify' },
-    { 'folke/noice.nvim' },
+    { "folke/trouble.nvim" },
     { 'simeji/winresizer' },
-
-    -- golang
-    -- { 'ray-x/go.nvim' },
 
     -- お遊び
 }

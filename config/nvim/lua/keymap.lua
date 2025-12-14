@@ -8,8 +8,8 @@ vim.keymap.set('n', ';', '/')
 vim.keymap.set('n', '<C-c><C-c>', ':noh<CR>', { silent = true })
 vim.keymap.set('i', '<C-c>', '<Esc>', { silent = true })
 
--- Claude Code
--- vim.keymap.set('n', '<C-Bslash>', ':ClaudeCode<CR>', { silent = true })
+-- GitHub Copilot Chat
+vim.keymap.set('n', '<C-Bslash>', ':CopilotChatToggle<CR>', { silent = true })
 
 -- LSP
 vim.keymap.set('n', '<Space>', ':lua vim.lsp.buf.hover()<CR>', { silent = true })
