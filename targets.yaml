@@ -29,3 +29,5 @@ hosts:
         nukegara: "config/lazygit"
       - target: "~/.config/niri"
         nukegara: "config/niri"
+      - target: "~/.config/waybar"
+        nukegara: "config/waybar"
