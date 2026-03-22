@@ -7,6 +7,10 @@ export PATH="/opt/homebrew/opt/openssl@1.1/bin:$PATH"
 export EDITOR=nvim
 export LESS='-RSX +G'
 export FZF_DEFAULT_OPTS='--reverse --highlight-line'
+export XDG_CONFIG_HOME="$HOME/.config"
+export XDG_CACHE_HOME="$HOME/.cache"
+export XDG_DATA_HOME="$HOME/.local/share"
+
 
 echo "Loading plugins using sheldone..."
 eval "$(sheldon source)"
@@ -184,6 +188,8 @@ SAVEHIST=1000
 # mecha mecha benri na command
 alias localhosting="python -m http.server"
 alias tma="tmux a -t \$(tmux ls | grep -v attached | fzf --tmux | sed -e 's/^\\(.*\\)[?:] .*$/\\1/g')"
+alias cpwd="pwd | pbcopy"
+alias zgh="cd \$(ghq list -p | fzf --ignore-case --tmux center,80% --wrap --header \"ghq list -p\")"
 
 alias rm="rm -i"
 alias less="less -MR"
@@ -207,3 +213,12 @@ export PATH="/Users/toshihitokon/.rd/bin:$PATH"
 if (which zprof > /dev/null 2>&1) ;then
   zprof
 fi
+
+# bun completions
+[ -s "/Users/toshihitokon/.bun/_bun" ] && source "/Users/toshihitokon/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+alias claude-mem='/Users/toshihitokon/.bun/bin/bun "/Users/toshihitokon/.claude/plugins/cache/thedotmack/claude-mem/10.6.1/scripts/worker-service.cjs"'

@@ -11,7 +11,7 @@ require("catppuccin").setup({
         gitsigns = true,
         mason = true,
         neotree = true,
-        copilot_vim = true,
+        -- copilot_vim = true,
         treesitter = true,
         native_lsp = {
             enabled = true,
@@ -67,7 +67,6 @@ require('statuscol').setup({
         },
         { text = { ' ' } },
     },
-
 })
 
 require('neo-tree').setup({
@@ -88,7 +87,11 @@ require('neo-tree').setup({
     filesystem = {
         follow_current_file = {
             enable = true,
-        }
+        },
+        filtered_items = {
+            hide_gitignored = false,
+            hide_ignored = false,
+        },
     },
     source_selector = {
         winbar = true,
@@ -256,6 +259,15 @@ require('tiny-inline-diagnostic').setup({
     },
 })
 
+-- LLM Support tools
+require("copilot").setup({
+    panel = {
+        enabled = false,
+    },
+    suggestion = {
+        enabled = false,
+    }
+})
 
 require('claude-code').setup {
     keymaps = {
@@ -328,6 +340,14 @@ require("conform").setup({
 -- 3. Completion
 local cmp = require('cmp')
 local lspkind = require('lspkind')
+lspkind.init({
+    symbol_map = {
+        Copilot = "",
+    },
+})
+
+require("copilot_cmp").setup()
+
 cmp.setup({
     snippet = {
         expand = function(args)
@@ -345,6 +365,7 @@ cmp.setup({
         ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
     }),
     sources = cmp.config.sources({
+        { name = "copilot", group_index = 2 },
         { name = 'nvim_lsp' },
         { name = 'path' }
     }),

@@ -53,7 +53,9 @@ require('pckr').add {
     { 'nvim-treesitter/nvim-treesitter', { 'do', ':TSUpdate' } },
 
     -- copilot
-    { 'github/copilot.vim' },
+    -- { 'github/copilot.vim' },
+    { 'zbirenbaum/copilot.lua' },
+    { 'zbirenbaum/copilot-cmp' },
 
     -- Claude Code
     {
@@ -76,10 +78,13 @@ require('pckr').add {
     -- completion
     { 'hrsh7th/nvim-cmp' },
     { 'hrsh7th/cmp-nvim-lsp' },
-    { 'onsails/lspkind.nvim' },
     { 'hrsh7th/cmp-buffer' },
     { 'hrsh7th/cmp-path' },
     { 'hrsh7th/cmp-cmdline' },
+    { 'onsails/lspkind.nvim' },
+
+    -- HTML
+    { 'mattn/emmet-vim' },
 
     -- utils
     { 'folke/which-key.nvim' },

@@ -9,6 +9,9 @@ vim.opt.termguicolors = true
 -- Clipboard
 vim.opt.clipboard = "unnamedplus"
 
+-- for nvim-cmp Highlight color
+vim.api.nvim_set_hl(0, "CmpItemKindCopilot", {fg ="#6CC644"})
+
 vim.opt.backspace = "indent,eol,start"
 vim.opt.wildmenu = true
 vim.opt.cmdheight = 1
