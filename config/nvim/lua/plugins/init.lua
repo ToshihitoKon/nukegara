@@ -33,7 +33,7 @@ require('pckr').add {
     },
     { "karb94/neoscroll.nvim" },
     { "terrortylor/nvim-comment" },
-    { 'ray-x/guihua.lua' }, -- recommended if need floating window support
+    { 'ray-x/guihua.lua' },
     { 'rcarriga/nvim-notify' },
     { 'folke/noice.nvim' },
     { "folke/trouble.nvim" },
@@ -41,6 +41,7 @@ require('pckr').add {
     { "kelly-lin/telescope-ag" },
     { 'nvim-treesitter/nvim-treesitter', { 'do', ':TSUpdate' } },
     { 'akinsho/toggleterm.nvim', tag = '*' },
+    { 'tpope/vim-repeat' },
 
     -- lsp
     { 'neovim/nvim-lspconfig' },

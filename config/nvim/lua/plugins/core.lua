@@ -86,7 +86,36 @@ require("noice").setup({
 -- Trouble: LSP Diagnostics viewer
 require('trouble').setup {}
 
-require("telescope").setup {}
+-- local builtin = require('telescope.builtin')
+local actions = require ('telescope.actions')
+require("telescope").setup {
+    defaults = {
+        mappings = {
+            i = {
+                ["<C-j>"] = actions.move_selection_next,
+                ["<C-k>"] = actions.move_selection_previous,
+                ["<C-u>"] = actions.results_scrolling_up,
+                ["<C-d>"] = actions.results_scrolling_down,
+            }
+        },
+        preview = {
+            filesize_limit = 0.1, -- MB
+        },
+        layout_strategy = "center",
+        layout_config = {
+          center = {
+            height = 0.4,
+            width = 0.8,
+            preview_cutoff = 0,
+            prompt_position = "top",
+          },
+        },
+    },
+    pickers = {
+    },
+    extensions = {}
+}
+
 require('telescope').load_extension('noice')
 require('telescope-ag').setup()
 
