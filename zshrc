@@ -1,5 +1,5 @@
 export LANG=en_US.UTF-8
-export PATH="/home/temama/.bin/:$PATH"
+export PATH="/home/temama/.local/bin/:/home/temama/.bin/:$PATH"
 export EDITOR=nvim
 export LESS='-RSX +G'
 export FZF_DEFAULT_OPTS='--reverse --highlight-line'
@@ -185,6 +185,7 @@ alias ss='~/.config/nukegara_scripts/ss.sh'
 alias localhosting="python -m http.server"
 alias temamount="sudo mount -o 'uid=1000,gid=1000'"
 alias tma="tmux a -t \$(tmux ls | grep -v attached | fzf --tmux | sed -e 's/^\\(.*\\)[?:] .*$/\\1/g')"
+alias zgh="cd \$(ghq root)/\$(ghq list | fzf --ignore-case --no-sort --style minimal --tmux --highlight-line --header \"ghq list\")"
 
 alias rm="rm -i"
 alias less="less -MR"

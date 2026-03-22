@@ -20,23 +20,9 @@ end
 bootstrap_pckr()
 
 require('pckr').add {
-    -- Color scheme
-    { "catppuccin/nvim",              as = "catppuccin" },
-    { "nvim-tree/nvim-web-devicons" },
-
-    -- Style
-    { 'cameron-wags/rainbow_csv.nvim' },
-    { 'rcarriga/nvim-notify' },
-    { 'folke/noice.nvim' },
-    { 'nvim-lualine/lualine.nvim' },
-    { 'shellRaining/hlchunk.nvim' },
-    { 'lewis6991/gitsigns.nvim' },
-    { 'luukvbaal/statuscol.nvim' },
-
-    -- Neo-tree
+    -- core
     {
         "nvim-neo-tree/neo-tree.nvim",
-        -- branch = "v3.x",
         tag = "3.33",
         requires = {
             "nvim-lua/plenary.nvim",
@@ -45,25 +31,16 @@ require('pckr').add {
         },
         lazy = false, -- neo-tree will lazily load itself
     },
-
-    { "dstein64/nvim-scrollview" },
     { "karb94/neoscroll.nvim" },
     { "terrortylor/nvim-comment" },
     { 'ray-x/guihua.lua' }, -- recommended if need floating window support
+    { 'rcarriga/nvim-notify' },
+    { 'folke/noice.nvim' },
+    { "folke/trouble.nvim" },
+    { "nvim-telescope/telescope.nvim" },
+    { "kelly-lin/telescope-ag" },
     { 'nvim-treesitter/nvim-treesitter', { 'do', ':TSUpdate' } },
-
-    -- copilot
-    -- { 'github/copilot.vim' },
-    { 'zbirenbaum/copilot.lua' },
-    { 'zbirenbaum/copilot-cmp' },
-
-    -- Claude Code
-    {
-        'greggh/claude-code.nvim',
-        requires = {
-            'nvim-lua/plenary.nvim', -- Required for git operations
-        }
-    },
+    { 'akinsho/toggleterm.nvim', tag = '*' },
 
     -- lsp
     { 'neovim/nvim-lspconfig' },
@@ -71,11 +48,6 @@ require('pckr').add {
     { "mason-org/mason-lspconfig.nvim" },
     { 'rachartier/tiny-inline-diagnostic.nvim' },
     { 'nvimdev/lspsaga.nvim' },
-
-    -- formatter
-    { "stevearc/conform.nvim" },
-
-    -- completion
     { 'hrsh7th/nvim-cmp' },
     { 'hrsh7th/cmp-nvim-lsp' },
     { 'hrsh7th/cmp-buffer' },
@@ -83,27 +55,38 @@ require('pckr').add {
     { 'hrsh7th/cmp-cmdline' },
     { 'onsails/lspkind.nvim' },
 
-    -- HTML
-    { 'mattn/emmet-vim' },
-
-    -- utils
-    { 'folke/which-key.nvim' },
-    {
-        "goolord/alpha-nvim",
-        dependencies = { 'nvim-tree/nvim-web-devicons' },
-    },
-    {
-        'akinsho/toggleterm.nvim',
-        tag = '*'
-    },
-    { "nvim-telescope/telescope.nvim" },
-    { "kelly-lin/telescope-ag" },
+    -- ai_tools
+    { 'lewis6991/gitsigns.nvim' },
     {
         'ruifm/gitlinker.nvim',
         requires = 'nvim-lua/plenary.nvim'
     },
-    { "folke/trouble.nvim" },
-    { 'simeji/winresizer' },
+    -- { 'github/copilot.vim' },
+    { 'zbirenbaum/copilot.lua' },
+    { 'zbirenbaum/copilot-cmp' },
+    {
+        'greggh/claude-code.nvim',
+        requires = {
+            'nvim-lua/plenary.nvim', -- Required for git operations
+        }
+    },
 
-    -- お遊び
+    -- formatting
+    { "stevearc/conform.nvim" },
+
+    -- extras
+    { "catppuccin/nvim", as = "catppuccin" },
+    { "nvim-tree/nvim-web-devicons" },
+    { 'cameron-wags/rainbow_csv.nvim' },
+    { 'nvim-lualine/lualine.nvim' },
+    { 'shellRaining/hlchunk.nvim' },
+    { 'luukvbaal/statuscol.nvim' },
+    { "dstein64/nvim-scrollview" },
+    {
+        "goolord/alpha-nvim",
+        dependencies = { 'nvim-tree/nvim-web-devicons' },
+    },
+    { 'folke/which-key.nvim' },
+    { 'mattn/emmet-vim' },
+    { 'simeji/winresizer' },
 }
