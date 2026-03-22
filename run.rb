@@ -217,8 +217,8 @@ class Local < Thor
       end
     end
 
-    changes = plans.reject { |p| p[:destination].file? && FileUtils.cmp(p[:source], p[:destination].to_s) }
-    return unless confirm_and_execute(changes.map { |p| "#{p[:source]} -> #{p[:destination]}" }, dry_run)
+    changes = plans.reject { it[:destination].file? && FileUtils.cmp(it[:source], it[:destination].to_s) }
+    return unless confirm_and_execute(changes.map { "#{it[:source]} -> #{it[:destination]}" }, dry_run)
 
     changes.each do |plan|
       FileUtils.mkdir_p(plan[:destination].dirname)
@@ -252,8 +252,8 @@ class Local < Thor
       end
     end
 
-    changes = plans.reject { |f| f[:dest].file? && FileUtils.cmp(f[:src].to_s, f[:dest].to_s) }
-    return unless confirm_and_execute(changes.map { |f| "#{f[:src]} -> #{f[:dest]}" }, dry_run)
+    changes = plans.reject { it[:dest].file? && FileUtils.cmp(it[:src].to_s, it[:dest].to_s) }
+    return unless confirm_and_execute(changes.map { "#{it[:src]} -> #{it[:dest]}" }, dry_run)
 
     changes.each do |f|
       FileUtils.mkdir_p(f[:dest].dirname)
@@ -349,6 +349,56 @@ class Nukegara < Thor
     end
 
     puts "No conflicts found." unless any_diff
+  end
+
+  desc "promote [NUKEGARA_REL]", "Promote env to master. No args: dry-run all conflicts. With path: promote specific file (conflict or env-only)"
+  option :execute, type: :boolean, default: false, desc: "Actually execute (default: dry-run)"
+  def promote(nukegara_rel = nil)
+    dry_run = !options[:execute]
+
+    require_master!(@config)
+    host_config = @config.current_host_config
+    @config.check_worktree_exists!(host_config)
+
+    all_entries = EffectiveConfig.compute(@config, host_config)
+
+    if nukegara_rel.nil?
+      changes = all_entries.select { |e| e[:source] == :conflict }.map do |e|
+        next if FileUtils.cmp(e[:master_path].to_s, e[:env_path].to_s)
+        { src: e[:env_path], dest: e[:master_path], label: colorize("[conflict] #{e[:nukegara_rel]}", :red) }
+      end.compact
+
+      return unless confirm_and_execute(changes.map { |c| c[:label] }, dry_run)
+
+      changes.each do |c|
+        FileUtils.mkdir_p(c[:dest].dirname)
+        FileUtils.copy(c[:src].to_s, c[:dest].to_s)
+      end
+      puts "nukegara promote completed."
+    else
+      entry = all_entries.find { |e| e[:nukegara_rel] == nukegara_rel && (e[:source] == :conflict || e[:source] == :env) }
+      unless entry
+        warn "Error: '#{nukegara_rel}' is not promotable (not found or master-only)."
+        exit 1
+      end
+
+      case entry[:source]
+      when :conflict
+        show_diff(entry[:master_path], entry[:env_path],
+                  label: nukegara_rel, left_label: "master", right_label: "env")
+        src  = entry[:env_path]
+        dest = entry[:master_path]
+      when :env
+        src  = entry[:env_path]
+        dest = @config.master_dir.join(nukegara_rel)
+      end
+
+      return unless confirm_and_execute(["#{src} -> #{dest}"], dry_run)
+
+      FileUtils.mkdir_p(dest.dirname)
+      FileUtils.copy(src.to_s, dest.to_s)
+      puts "nukegara promote completed."
+    end
   end
 
   desc "apply", "Correct current env worktree to match master (overwrite conflicts)"
