@@ -1,1 +1,5 @@
-environments/
+environments/*
+!**/.gitkeep
+
+.gemini/
+gha-creds-*.json

@@ -1,3 +1,6 @@
+master:
+  path: master/
+
 hosts:
   - md5: e7d8577877bbfda3608a3c2679e56a18
     branch: environments/macbook/2025
