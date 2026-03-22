@@ -24,9 +24,10 @@ vim.keymap.set('n', 'th', ':Gitsigns preview_hunk_inline<CR>', { silent = true }
 keymap_w_repeat('n', 'tj', 'Gitsigns nav_hunk next')
 
 -- Telescope
-vim.keymap.set('n', 'td', ':Telescope diagnostic<CR>', { silent = true })
+vim.keymap.set('n', 'td', ':Telescope diagnostics<CR>', { silent = true })
 vim.keymap.set('n', 'tf', ':Telescope find_files<CR>', { silent = true })
 vim.keymap.set('n', 'ty', ':Telescope live_grep<CR>', { silent = true })
+vim.keymap.set('n', 'tn', ':Telescope noice<CR>', { silent = true })
 
 -- LSP
 vim.keymap.set('n', '<Space>', ':lua vim.lsp.buf.hover()<CR>', { silent = true })

@@ -56,6 +56,28 @@ local function alternate_buffer_name()
     return "alt: " .. buffer_name(alt_buf)
 end
 
+require("noice").setup({
+    cmdline = {
+        view = "cmdline_popup",
+    },
+    lsp = {
+        -- override markdown rendering so that **cmp** and other plugins use **Treesitter**
+        override = {
+            ["vim.lsp.util.convert_input_to_markdown_lines"] = true,
+            ["vim.lsp.util.stylize_markdown"] = true,
+            -- ["cmp.entry.get_documentation"] = true, -- requires hrsh7th/nvim-cmp
+        },
+    },
+    -- you can enable a preset for easier configuration
+    presets = {
+        bottom_search = true,
+        command_palette = true,
+        long_message_to_split = false,
+        inc_rename = false,
+        lsp_doc_border = true,
+    },
+})
+
 require('lualine').setup({
     options = {
         theme = "catppuccin",
@@ -127,6 +149,9 @@ require('statuscol').setup({
     },
 })
 
+-- Trouble: LSP Diagnostics viewer
+require('trouble').setup {} -- TODO: いい感じにする
+
 require('scrollview').setup({
     excluded_filetypes = {},
     current_only = true,
@@ -156,3 +181,11 @@ require("hlchunk").setup({
 })
 
 require 'rainbow_csv'.setup()
+
+require("which-key").setup{
+    preset = 'modern',
+    triggers = {
+        { "<auto>", mode = "nxso" },
+        { "t", mode = "n" }, -- for personal useful keymaps
+    },
+}
