@@ -1,87 +1,87 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+このファイルは、このリポジトリのコードを扱う Claude Code (claude.ai/code) へのガイダンスを提供する。
 
-## Repository Overview
+## リポジトリの概要
 
-This repository manages environment-specific dotfiles using Git branches. Each branch contains configuration files for a specific environment, and the main branch contains management scripts (`run.rb` and `targets.yaml`) for syncing dotfiles from the local system to the appropriate Git worktree based on automatic host identification.
+このリポジトリは Git ブランチを使って環境ごとのドットファイルを管理する。各ブランチには特定の環境の設定ファイルが含まれており、メインブランチにはホスト自動識別に基づいてローカルシステムから適切な Git worktree にドットファイルを同期するための管理スクリプト（`run.rb` と `targets.yaml`）が含まれる。
 
-## Branch Structure
+## ブランチ構成
 
-- **main branch**: Contains management scripts for applying dotfile configurations
-- **Environment branches**: Each branch contains dotfiles and configuration for a specific environment
-  - `environments/macbook/2025`: macOS configuration (2025 version)
-  - `environments/macbook/202410`: macOS configuration (October 2024 version)  
-  - `win11-kaede-arch`: Windows 11 with Arch Linux subsystem configuration
-  - `warabi`: Development/testing environment
+- **main ブランチ**: ドットファイル設定を適用するための管理スクリプトを含む
+- **環境ブランチ**: 各ブランチには特定の環境のドットファイルと設定が含まれる
+  - `environments/macbook/2025`: macOS 設定（2025年版）
+  - `environments/macbook/202410`: macOS 設定（2024年10月版）
+  - `win11-kaede-arch`: Windows 11 + Arch Linux サブシステム設定
+  - `warabi`: 開発・テスト環境
 
-## How It Works
+## 仕組み
 
-### Automatic Host Identification
-- Each host is identified by the MD5 hash of its hostname
-- The `run.rb` script automatically detects the current host and finds matching configuration in `targets.yaml`
-- Files are synced from the local system to the appropriate Git worktree directory
+### ホスト自動識別
+- 各ホストはホスト名の MD5 ハッシュで識別される
+- `run.rb` スクリプトが現在のホストを自動検出し、`targets.yaml` から一致する設定を探す
+- ローカルシステムから適切な Git worktree ディレクトリにファイルが同期される
 
-### Configuration Management
-- `targets.yaml`: Defines host configurations, branch mappings, and target files
-- Each host configuration specifies:
-  - `md5`: MD5 hash of the hostname for identification
-  - `branch`: Git branch containing the environment's dotfiles
-  - `targets`: List of files/directories to sync
+### 設定管理
+- `targets.yaml`: ホスト設定、ブランチマッピング、対象ファイルを定義する
+- 各ホスト設定で指定するもの:
+  - `md5`: ホスト識別用のホスト名 MD5 ハッシュ
+  - `branch`: 環境のドットファイルを含む Git ブランチ
+  - `targets`: 同期するファイル/ディレクトリのリスト
 
-### Working with Environment Branches
-- Each environment branch is self-contained with its own dotfiles
-- Use `git worktree` to work with multiple environments concurrently
-- Changes are synced from local system to worktree, then committed to the branch
+### 環境ブランチでの作業
+- 各環境ブランチは独立していて、独自のドットファイルを持つ
+- 複数の環境を同時に扱うには `git worktree` を使う
+- 変更はローカルシステム → worktree の方向で同期され、その後ブランチにコミットする
 
-## Common Commands
+## よく使うコマンド
 
 ```bash
-# Get your host's MD5 hash
+# ホストの MD5 ハッシュを取得する
 ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`hostname\`.strip)"
 
-# List all available branches (including environment branches)
+# 全ブランチ（環境ブランチ含む）を一覧表示する
 git branch -a
 
-# Create a worktree for a specific environment
+# 特定の環境の worktree を作成する
 git worktree add environments/<environment-branch> <environment-branch>
 
-# Sync local dotfiles to worktree (automatically detects host)
+# ローカルのドットファイルを worktree に同期する（ホスト自動検出）
 ruby run.rb
 
-# List all worktrees
+# 全 worktree を一覧表示する
 git worktree list
 
-# Remove a worktree
+# worktree を削除する
 git worktree remove environments/<environment-branch>
 ```
 
-## Typical Workflow
+## 典型的なワークフロー
 
-1. **Initial Setup**:
+1. **初期セットアップ**:
    ```bash
-   # Get your host's MD5 hash
+   # ホストの MD5 ハッシュを取得する
    ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`hostname\`.strip)"
 
-   # Create environment branch (if needed)
+   # 環境ブランチを作成する（必要な場合）
    git checkout -b environments/macbook/2025
    git push -u origin environments/macbook/2025
    git checkout main
 
-   # Create worktree
+   # worktree を作成する
    git worktree add environments/macbook/2025 environments/macbook/2025
 
-   # Add configuration to targets.yaml
-   # (specify md5, branch, and target files)
+   # targets.yaml に設定を追加する
+   # （md5、branch、対象ファイルを指定する）
    ```
 
-2. **Sync Local Changes to Worktree**:
+2. **ローカルの変更を worktree に同期する**:
    ```bash
-   # Automatically syncs based on hostname
+   # ホスト名に基づいて自動的に同期する
    ruby run.rb
    ```
 
-3. **Commit and Push Changes**:
+3. **変更をコミット・プッシュする**:
    ```bash
    cd environments/macbook/2025
    git add .
@@ -90,18 +90,18 @@ git worktree remove environments/<environment-branch>
    cd ../..
    ```
 
-4. **Deploy on Another Machine**:
+4. **別のマシンにデプロイする**:
    ```bash
-   # On a machine with the same environment configuration
+   # 同じ環境設定を持つマシン上で実行する
    git worktree add environments/macbook/2025 environments/macbook/2025
    cd environments/macbook/2025
    git pull
-   # Manually copy files to home directory or use a deployment script
+   # 手動でホームディレクトリにファイルをコピーするか、デプロイスクリプトを使う
    ```
 
-## targets.yaml Configuration
+## targets.yaml の設定
 
-Example configuration structure:
+設定構造の例:
 
 ```yaml
 hosts:
@@ -118,16 +118,16 @@ hosts:
         nukegara: "config/alacritty"
 ```
 
-- `md5`: MD5 hash of the hostname (run the command above to get it)
-- `branch`: Git branch where this environment's dotfiles are stored
-- `targets`: List of file/directory mappings
-  - `target`: Path on the local system (supports `~` for home directory)
-  - `nukegara`: Relative path within the worktree
+- `md5`: ホスト名の MD5 ハッシュ（上のコマンドで取得する）
+- `branch`: この環境のドットファイルを保存する Git ブランチ
+- `targets`: ファイル/ディレクトリのマッピングリスト
+  - `target`: ローカルシステム上のパス（`~` でホームディレクトリを指定可）
+  - `nukegara`: worktree 内の相対パス
 
-## Development Notes
+## 開発メモ
 
-- This repository uses a branch-per-environment strategy
-- Main branch contains shared tooling (`run.rb`, `targets.yaml`) and documentation
-- Environment branches are isolated and environment-specific
-- Use git worktree for concurrent work on multiple environments
-- The sync is one-way: local system → worktree (does not automatically deploy to home directory)
+- このリポジトリは環境ごとにブランチを分ける戦略を採用している
+- main ブランチには共通ツール（`run.rb`、`targets.yaml`）とドキュメントが含まれる
+- 環境ブランチは独立していて環境固有の内容を持つ
+- 複数の環境を同時に扱うには git worktree を使う
+- 同期はローカルシステム → worktree の一方向のみ（ホームディレクトリへの自動デプロイはない）
