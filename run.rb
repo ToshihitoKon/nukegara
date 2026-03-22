@@ -335,10 +335,13 @@ class Nukegara < Thor
     EffectiveConfig.compute(@config, host_config).each do |entry|
       case entry[:source]
       when :conflict
-        puts colorize("[conflict] #{entry[:nukegara_rel]}", :red)
-        any_diff = true if show_diff(entry[:master_path], entry[:env_path],
-                                     label: entry[:nukegara_rel],
-                                     left_label: "master", right_label: "env")
+        has_diff = show_diff(entry[:master_path], entry[:env_path],
+                             label: entry[:nukegara_rel],
+                             left_label: "master", right_label: "env")
+        if has_diff
+          puts colorize("[conflict] #{entry[:nukegara_rel]}", :red)
+          any_diff = true
+        end
       when :env
         puts colorize("[env-only] #{entry[:nukegara_rel]}", :cyan)
       when :master
