@@ -4,6 +4,8 @@ gemfile do
   source 'https://rubygems.org'
   gem 'yaml'
   gem 'fileutils'
+  gem 'thor'
+  gem 'reline'
 end
 require 'digest/md5'
 require 'open3'
@@ -28,7 +30,7 @@ class NukegaraConfig
 
   def current_host_config
     md5 = host_md5
-    found = @hosts.select { |h| h[:md5] == md5 }
+    found = @hosts.select { it[:md5] == md5 }
     if found.size != 1
       warn "Error: Expected exactly one host configuration for this machine."
       warn "MD5: #{md5}"
@@ -132,70 +134,136 @@ class EffectiveConfig
   end
 end
 
-class Commands
-  def initialize(config)
-    @config = config
+module NukegaraHelpers
+  private
+
+  def colorize(text, color)
+    return text unless $stdout.tty?
+    codes = { red: 31, green: 32, yellow: 33, cyan: 36, gray: 90 }
+    "\e[#{codes[color]}m#{text}\e[0m"
   end
 
-  def local_pull
-    host_config = @config.current_host_config
-    @config.check_worktree_exists!(host_config)
-
-    plans = build_local_to_worktree_plans(host_config)
-    plans.each do |plan|
-      dest_dir = plan[:destination].dirname
-      FileUtils.mkdir_p(dest_dir) unless dest_dir.directory?
-
-      if plan[:destination].file? && FileUtils.cmp(plan[:source], plan[:destination].to_s)
-        puts "Skip (unchanged): #{plan[:source]}"
-        next
-      end
-
-      puts "Pull: #{plan[:source]} -> #{plan[:destination]}"
-      FileUtils.copy(plan[:source], plan[:destination].to_s)
+  def show_diff(path_a, path_b, label:, left_label: "a", right_label: "b")
+    begin
+      return false if FileUtils.cmp(path_a.to_s, path_b.to_s)
+    rescue
     end
-    puts 'local pull completed.'
+
+    out, = Open3.capture2("diff", "--unified=3",
+                          "--label", "#{left_label}/#{label}",
+                          "--label", "#{right_label}/#{label}",
+                          path_a.to_s, path_b.to_s)
+    puts out unless out.empty?
+    true
   end
 
-  def local_apply
+  def require_master!(config)
+    return if config.master_enabled?
+    warn "Error: master/ directory is not configured or does not exist."
+    warn "Add 'master: { path: master/ }' to targets.yaml and create the directory."
+    exit 1
+  end
+
+  def confirm_and_execute(change_labels, dry_run)
+    if change_labels.empty?
+      puts "Nothing to do."
+      return false
+    end
+
+    change_labels.each { |l| puts "  #{l}" }
+
+    if dry_run
+      puts "\n#{change_labels.size} file(s) would be changed. Run with --execute to apply."
+      return false
+    end
+
+    yes?("\nProceed with #{change_labels.size} change(s)? [y/N]")
+  end
+end
+
+class Local < Thor
+  include NukegaraHelpers
+
+  def initialize(*args)
+    super
+    @config = NukegaraConfig.new
+  end
+
+  desc "pull", "Sync local filesystem -> env worktree"
+  option :execute, type: :boolean, default: false, desc: "Actually execute (default: dry-run)"
+  def pull
+    dry_run = !options[:execute]
+
     host_config = @config.current_host_config
     @config.check_worktree_exists!(host_config)
 
     worktree_dir = @config.worktree_dir(host_config)
+    plans = []
+
+    host_config[:targets].each do |entry|
+      realpath = File.expand_path(entry[:target])
+      next unless File.exist?(realpath)
+
+      target = Pathname(entry[:nukegara])
+
+      if File.directory?(realpath)
+        Dir.glob(File.join(realpath, '**', '*')).each do |glob|
+          next if File.directory?(glob)
+          relative_path = Pathname(File.dirname(glob)).relative_path_from(realpath)
+          plans << { source: glob, destination: worktree_dir.join(target, relative_path, File.basename(glob)) }
+        end
+      else
+        plans << { source: realpath, destination: worktree_dir.join(target) }
+      end
+    end
+
+    changes = plans.reject { |p| p[:destination].file? && FileUtils.cmp(p[:source], p[:destination].to_s) }
+    return unless confirm_and_execute(changes.map { |p| "#{p[:source]} -> #{p[:destination]}" }, dry_run)
+
+    changes.each do |plan|
+      FileUtils.mkdir_p(plan[:destination].dirname)
+      FileUtils.copy(plan[:source], plan[:destination].to_s)
+    end
+    puts "local pull completed."
+  end
+
+  desc "apply", "Apply env worktree -> local filesystem"
+  option :execute, type: :boolean, default: false, desc: "Actually execute (default: dry-run)"
+  def apply
+    dry_run = !options[:execute]
+
+    host_config = @config.current_host_config
+    @config.check_worktree_exists!(host_config)
+
+    worktree_dir = @config.worktree_dir(host_config)
+    plans = []
 
     host_config[:targets].each do |entry|
       local_base    = File.expand_path(entry[:target])
-      nukegara_base = entry[:nukegara]
-      src_base      = worktree_dir.join(nukegara_base)
+      src_base      = worktree_dir.join(entry[:nukegara])
+      next unless src_base.exist?
 
-      unless src_base.exist?
-        puts "Skip (not in worktree): #{nukegara_base}"
-        next
-      end
-
-      files = if src_base.file?
-                [{ src: src_base, dest: Pathname(local_base) }]
-              else
-                src_base.glob('**/*').reject(&:directory?).map do |p|
-                  rel = p.relative_path_from(src_base)
-                  { src: p, dest: Pathname(local_base).join(rel) }
-                end
-              end
-
-      files.each do |f|
-        FileUtils.mkdir_p(f[:dest].dirname)
-        if f[:dest].file? && FileUtils.cmp(f[:src].to_s, f[:dest].to_s)
-          puts "Skip (unchanged): #{f[:dest]}"
-          next
+      if src_base.file?
+        plans << { src: src_base, dest: Pathname(local_base) }
+      else
+        src_base.glob('**/*').reject(&:directory?).each do |p|
+          plans << { src: p, dest: Pathname(local_base).join(p.relative_path_from(src_base)) }
         end
-        puts "Apply: #{f[:src]} -> #{f[:dest]}"
-        FileUtils.copy(f[:src].to_s, f[:dest].to_s)
       end
     end
-    puts 'local apply completed.'
+
+    changes = plans.reject { |f| f[:dest].file? && FileUtils.cmp(f[:src].to_s, f[:dest].to_s) }
+    return unless confirm_and_execute(changes.map { |f| "#{f[:src]} -> #{f[:dest]}" }, dry_run)
+
+    changes.each do |f|
+      FileUtils.mkdir_p(f[:dest].dirname)
+      FileUtils.copy(f[:src].to_s, f[:dest].to_s)
+    end
+    puts "local apply completed."
   end
 
-  def local_diff
+  desc "diff", "Show diff between local filesystem and env worktree"
+  def diff
     host_config = @config.current_host_config
     @config.check_worktree_exists!(host_config)
 
@@ -227,11 +295,9 @@ class Commands
                     {}
                   end
 
-      all_rel = (local_files.keys | env_files.keys).sort
-
-      all_rel.each do |rel|
-        lp = local_files[rel]
-        ep = env_files[rel]
+      (local_files.keys | env_files.keys).sort.each do |rel|
+        lp    = local_files[rel]
+        ep    = env_files[rel]
         label = Pathname(nukegara_base).join(rel).cleanpath.to_s
 
         if lp.nil?
@@ -241,195 +307,90 @@ class Commands
           puts colorize("[worktree-missing] #{label}", :yellow)
           any_diff = true
         else
-          d = show_diff(ep, lp, label: label, left_label: "worktree", right_label: "local")
-          any_diff = true if d
+          any_diff = true if show_diff(ep, lp, label: label, left_label: "worktree", right_label: "local")
         end
       end
     end
 
     puts 'No differences found.' unless any_diff
   end
+end
 
-  def nukegara_diff
-    require_master!
+class Nukegara < Thor
+  include NukegaraHelpers
+
+  def initialize(*args)
+    super
+    @config = NukegaraConfig.new
+  end
+
+  desc "diff", "Show diff between master and current env worktree"
+  def diff
+    require_master!(@config)
+    host_config = @config.current_host_config
+    @config.check_worktree_exists!(host_config)
 
     any_diff = false
 
-    @config.hosts.each do |host_config|
-      branch = host_config[:branch]
-      worktree = @config.worktree_dir(host_config)
-      unless worktree.directory?
-        puts colorize("[worktree-missing] #{branch}", :yellow)
-        next
-      end
-
-      puts "\n=== #{branch} ==="
-      entries = EffectiveConfig.compute(@config, host_config)
-
-      entries.each do |entry|
-        case entry[:source]
-        when :conflict
-          puts colorize("[conflict] #{entry[:nukegara_rel]}", :red)
-          d = show_diff(entry[:master_path], entry[:env_path],
-                        label: entry[:nukegara_rel],
-                        left_label: "master", right_label: "env")
-          any_diff = true if d
-        when :env
-          puts colorize("[env-only] #{entry[:nukegara_rel]}", :cyan)
-        when :master
-        end
+    EffectiveConfig.compute(@config, host_config).each do |entry|
+      case entry[:source]
+      when :conflict
+        puts colorize("[conflict] #{entry[:nukegara_rel]}", :red)
+        any_diff = true if show_diff(entry[:master_path], entry[:env_path],
+                                     label: entry[:nukegara_rel],
+                                     left_label: "master", right_label: "env")
+      when :env
+        puts colorize("[env-only] #{entry[:nukegara_rel]}", :cyan)
+      when :master
       end
     end
 
-    puts "\nNo conflicts found." unless any_diff
+    puts "No conflicts found." unless any_diff
   end
 
-  def nukegara_apply
-    require_master!
+  desc "apply", "Correct current env worktree to match master (overwrite conflicts)"
+  option :execute, type: :boolean, default: false, desc: "Actually execute (default: dry-run)"
+  def apply
+    dry_run = !options[:execute]
 
-    @config.hosts.each do |host_config|
-      branch = host_config[:branch]
-      worktree = @config.worktree_dir(host_config)
-      unless worktree.directory?
-        puts colorize("[skip] worktree not found: #{branch}", :yellow)
-        next
-      end
+    require_master!(@config)
+    host_config = @config.current_host_config
+    @config.check_worktree_exists!(host_config)
 
-      puts "\n=== #{branch} ==="
-      entries = EffectiveConfig.compute(@config, host_config)
+    worktree = @config.worktree_dir(host_config)
+    changes = []
 
-      entries.each do |entry|
-        case entry[:source]
-        when :conflict
-          dest = entry[:env_path]
-          src  = entry[:master_path]
-          if FileUtils.cmp(src.to_s, dest.to_s)
-            puts "Skip (unchanged): #{entry[:nukegara_rel]}"
-          else
-            puts colorize("Correct (conflict): #{entry[:nukegara_rel]}", :red)
-            FileUtils.copy(src.to_s, dest.to_s)
-          end
-        when :master
-          dest = worktree.join(entry[:nukegara_rel])
-          src  = entry[:master_path]
-          FileUtils.mkdir_p(dest.dirname)
-          if dest.file? && FileUtils.cmp(src.to_s, dest.to_s)
-            puts "Skip (unchanged): #{entry[:nukegara_rel]}"
-          else
-            puts "Apply (master->env): #{entry[:nukegara_rel]}"
-            FileUtils.copy(src.to_s, dest.to_s)
-          end
-        when :env
-        end
+    EffectiveConfig.compute(@config, host_config).each do |entry|
+      case entry[:source]
+      when :conflict
+        src, dest = entry[:master_path], entry[:env_path]
+        next if FileUtils.cmp(src.to_s, dest.to_s)
+        changes << { src: src, dest: dest, label: colorize("[conflict] #{entry[:nukegara_rel]}", :red) }
+      when :master
+        src  = entry[:master_path]
+        dest = worktree.join(entry[:nukegara_rel])
+        next if dest.file? && FileUtils.cmp(src.to_s, dest.to_s)
+        changes << { src: src, dest: dest, label: "[master->env] #{entry[:nukegara_rel]}" }
+      when :env
       end
     end
 
-    puts "\nnukegara apply completed."
-  end
+    return unless confirm_and_execute(changes.map { |c| c[:label] }, dry_run)
 
-  private
-
-  def require_master!
-    return if @config.master_enabled?
-    warn "Error: master/ directory is not configured or does not exist."
-    warn "Add 'master: { path: master/ }' to targets.yaml and create the directory."
-    exit 1
-  end
-
-  def build_local_to_worktree_plans(host_config)
-    worktree_dir = @config.worktree_dir(host_config)
-    plans = []
-
-    host_config[:targets].each do |entry|
-      realpath = File.expand_path(entry[:target])
-      unless File.exist?(realpath)
-        puts "Skip (not found locally): #{realpath}"
-        next
-      end
-
-      target = Pathname(entry[:nukegara])
-
-      if File.directory?(realpath)
-        Dir.glob(File.join(realpath, '**', '*')).each do |glob|
-          next if File.directory?(glob)
-          relative_path = Pathname(File.dirname(glob)).relative_path_from(realpath)
-          plans << {
-            source:      glob,
-            destination: worktree_dir.join(target, relative_path, File.basename(glob))
-          }
-        end
-      else
-        plans << {
-          source:      realpath,
-          destination: worktree_dir.join(target)
-        }
-      end
+    changes.each do |c|
+      FileUtils.mkdir_p(c[:dest].dirname)
+      FileUtils.copy(c[:src].to_s, c[:dest].to_s)
     end
-
-    plans
-  end
-
-  def show_diff(path_a, path_b, label:, left_label: "a", right_label: "b")
-    begin
-      return false if FileUtils.cmp(path_a.to_s, path_b.to_s)
-    rescue
-    end
-
-    out, = Open3.capture2("diff", "--unified=3",
-                          "--label", "#{left_label}/#{label}",
-                          "--label", "#{right_label}/#{label}",
-                          path_a.to_s, path_b.to_s)
-    unless out.empty?
-      puts out
-    end
-    true
-  end
-
-  def colorize(text, color)
-    return text unless $stdout.tty?
-    codes = { red: 31, green: 32, yellow: 33, cyan: 36, gray: 90 }
-    "\e[#{codes[color]}m#{text}\e[0m"
+    puts "nukegara apply completed."
   end
 end
 
-USAGE = <<~USAGE
-  nukegara - dotfile manager
+class CLI < Thor
+  desc "local SUBCOMMAND", "Manage local filesystem <-> env worktree"
+  subcommand "local", Local
 
-  Usage: ruby run.rb <context> <action>
-
-  Contexts and actions:
-    local pull    - Sync local filesystem -> env worktree
-    local apply   - Apply env worktree -> local filesystem
-    local diff    - Show diff between local filesystem and env worktree
-
-    nukegara diff   - Show diff between master and each env worktree
-    nukegara apply  - Correct env worktrees to match master (overwrite conflicts)
-USAGE
-
-config = NukegaraConfig.new
-commands = Commands.new(config)
-
-context = ARGV[0]
-action  = ARGV[1]
-
-if context.nil? || action.nil?
-  puts USAGE
-  exit 0
+  desc "nukegara SUBCOMMAND", "Manage master <-> env worktrees"
+  subcommand "nukegara", Nukegara
 end
 
-case [context, action]
-when ['local', 'pull']
-  commands.local_pull
-when ['local', 'apply']
-  commands.local_apply
-when ['local', 'diff']
-  commands.local_diff
-when ['nukegara', 'diff']
-  commands.nukegara_diff
-when ['nukegara', 'apply']
-  commands.nukegara_apply
-else
-  warn "Unknown command: #{context} #{action}"
-  puts USAGE
-  exit 1
-end
+CLI.start(ARGV)
