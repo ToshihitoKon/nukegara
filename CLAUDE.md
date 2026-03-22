@@ -4,7 +4,7 @@
 
 ## リポジトリの概要
 
-このリポジトリは Git ブランチを使って環境ごとのドットファイルを管理する。各ブランチには特定の環境の設定ファイルが含まれており、メインブランチにはホスト自動識別に基づいてローカルシステムから適切な Git worktree にドットファイルを同期するための管理スクリプト（`run.rb` と `targets.yaml`）が含まれる。
+このリポジトリは Git ブランチを使って環境ごとのドットファイルを管理する。各ブランチには特定の環境の設定ファイルが含まれており、main ブランチにはホスト自動識別に基づいてローカルシステムと Git worktree の間でドットファイルを同期するための管理スクリプト（`run.rb` と `targets.yaml`）が含まれる。
 
 ## ブランチ構成
 
@@ -18,9 +18,9 @@
 ## 仕組み
 
 ### ホスト自動識別
-- 各ホストはホスト名の MD5 ハッシュで識別される
+- 各ホストはホスト名（`uname -n`）の MD5 ハッシュで識別される
 - `run.rb` スクリプトが現在のホストを自動検出し、`targets.yaml` から一致する設定を探す
-- ローカルシステムから適切な Git worktree ディレクトリにファイルが同期される
+- ローカルシステムと適切な Git worktree ディレクトリの間でファイルが同期される
 
 ### 設定管理
 - `targets.yaml`: ホスト設定、ブランチマッピング、対象ファイルを定義する
@@ -29,25 +29,52 @@
   - `branch`: 環境のドットファイルを含む Git ブランチ
   - `targets`: 同期するファイル/ディレクトリのリスト
 
+### master/ ディレクトリ
+- `targets.yaml` の `master.path` で設定する共通設定ディレクトリ
+- 複数の環境に共通して適用したいファイルを置く場所
+- env ブランチと master の同名ファイルは `conflict` として検出される
+- `nukegara diff` で差分確認、`nukegara apply` で master の内容を env に反映できる
+
 ### 環境ブランチでの作業
 - 各環境ブランチは独立していて、独自のドットファイルを持つ
 - 複数の環境を同時に扱うには `git worktree` を使う
-- 変更はローカルシステム → worktree の方向で同期され、その後ブランチにコミットする
+- 同期方向はコマンドで制御する:
+  - `local pull`: ローカル → worktree
+  - `local apply`: worktree → ローカル
+
+### ドライランと --execute フラグ
+- デフォルトはドライラン（変更内容を表示するだけ）
+- `--execute` を付けると確認プロンプトの後に実際にファイルをコピーする
 
 ## よく使うコマンド
 
 ```bash
 # ホストの MD5 ハッシュを取得する
-ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`hostname\`.strip)"
+ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`uname -n\`.strip)"
+
+# ローカルと worktree の差分確認
+ruby run.rb local diff
+
+# ローカル → worktree に同期する（ドライラン）
+ruby run.rb local pull
+
+# ローカル → worktree に同期する（実行）
+ruby run.rb local pull --execute
+
+# worktree → ローカルに反映する（実行）
+ruby run.rb local apply --execute
+
+# master と env の差分確認
+ruby run.rb nukegara diff
+
+# master の内容を env に反映する（実行）
+ruby run.rb nukegara apply --execute
 
 # 全ブランチ（環境ブランチ含む）を一覧表示する
 git branch -a
 
 # 特定の環境の worktree を作成する
 git worktree add environments/<environment-branch> <environment-branch>
-
-# ローカルのドットファイルを worktree に同期する（ホスト自動検出）
-ruby run.rb
 
 # 全 worktree を一覧表示する
 git worktree list
@@ -61,7 +88,7 @@ git worktree remove environments/<environment-branch>
 1. **初期セットアップ**:
    ```bash
    # ホストの MD5 ハッシュを取得する
-   ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`hostname\`.strip)"
+   ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`uname -n\`.strip)"
 
    # 環境ブランチを作成する（必要な場合）
    git checkout -b environments/macbook/2025
@@ -77,8 +104,11 @@ git worktree remove environments/<environment-branch>
 
 2. **ローカルの変更を worktree に同期する**:
    ```bash
-   # ホスト名に基づいて自動的に同期する
-   ruby run.rb
+   # 差分確認
+   ruby run.rb local diff
+
+   # 同期実行
+   ruby run.rb local pull --execute
    ```
 
 3. **変更をコミット・プッシュする**:
@@ -96,7 +126,8 @@ git worktree remove environments/<environment-branch>
    git worktree add environments/macbook/2025 environments/macbook/2025
    cd environments/macbook/2025
    git pull
-   # 手動でホームディレクトリにファイルをコピーするか、デプロイスクリプトを使う
+   cd ../..
+   ruby run.rb local apply --execute
    ```
 
 ## targets.yaml の設定
@@ -104,6 +135,9 @@ git worktree remove environments/<environment-branch>
 設定構造の例:
 
 ```yaml
+master:
+  path: master/
+
 hosts:
   - md5: e7d8577877bbfda3608a3c2679e56a18
     branch: environments/macbook/2025
@@ -118,7 +152,8 @@ hosts:
         nukegara: "config/alacritty"
 ```
 
-- `md5`: ホスト名の MD5 ハッシュ（上のコマンドで取得する）
+- `master.path`: master ディレクトリのパス（省略可）
+- `md5`: ホスト名の MD5 ハッシュ（`uname -n` ベース）
 - `branch`: この環境のドットファイルを保存する Git ブランチ
 - `targets`: ファイル/ディレクトリのマッピングリスト
   - `target`: ローカルシステム上のパス（`~` でホームディレクトリを指定可）
@@ -130,4 +165,4 @@ hosts:
 - main ブランチには共通ツール（`run.rb`、`targets.yaml`）とドキュメントが含まれる
 - 環境ブランチは独立していて環境固有の内容を持つ
 - 複数の環境を同時に扱うには git worktree を使う
-- 同期はローカルシステム → worktree の一方向のみ（ホームディレクトリへの自動デプロイはない）
+- `run.rb` は Thor フレームワークを使ったサブコマンド CLI として実装されている

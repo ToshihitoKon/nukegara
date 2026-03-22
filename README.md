@@ -1,63 +1,65 @@
-# nukegara - Environment-Specific Dotfiles Management
+# nukegara - 環境別ドットファイル管理
 
-A Git-based dotfiles management system that uses branches for environment-specific configurations and MD5-based host identification for automatic deployment.
+Git ブランチを使って環境ごとのドットファイルを管理するシステム。MD5 ベースのホスト自動識別と、master ディレクトリによる共通設定配布をサポートする。
 
-## Overview
+## 概要
 
-`nukegara` manages dotfiles across multiple environments using Git branches. Each environment has its own branch containing configuration files, and the main branch contains management scripts that automatically sync configurations based on the host machine.
+`nukegara` は Git ブランチで複数環境のドットファイルを管理する。各環境は独自のブランチを持ち、main ブランチの管理スクリプトがホストを自動識別して適切な worktree との同期を行う。
 
-## Features
+## 特徴
 
-- **Automatic host identification**: Uses MD5 hash of hostname to identify machines
-- **Branch-based environments**: Each environment lives in its own Git branch
-- **Git worktree integration**: Uses Git worktrees for concurrent environment management
-- **Smart file syncing**: Only copies files that have changed
-- **Directory support**: Can sync both individual files and entire directories
+- **ホスト自動識別**: ホスト名の MD5 ハッシュでマシンを識別
+- **ブランチ = 環境**: 環境ごとに独立した Git ブランチで管理
+- **git worktree 活用**: 複数環境を同時に扱える
+- **スマートな差分同期**: 変更があったファイルのみコピー
+- **ドライランモード**: デフォルトは確認のみ、`--execute` で実行
 
-## How It Works
-
-1. Each host is identified by the MD5 hash of its hostname
-2. Configuration for each host is defined in `targets.yaml`
-3. The script syncs files from the local system to the appropriate Git worktree directory
-4. Changes can be committed and pushed to the environment-specific branch
-
-## Repository Structure
+## リポジトリ構造
 
 ```
 .
-├── run.rb              # Main sync script
-├── targets.yaml        # Host configurations and target files
-└── <branch-name>/      # Git worktrees (not tracked)
+├── run.rb              # メイン管理スクリプト
+├── targets.yaml        # ホスト設定・対象ファイル定義
+├── master/             # 全環境共通のマスター設定（任意）
+└── environments/       # Git worktree（.gitignore 推奨）
+    └── macbook/2025/
 ```
 
-## Configuration
+## 設定
 
 ### targets.yaml
 
-Define your hosts and target files in `targets.yaml`:
-
 ```yaml
+master:
+  path: master/         # master ディレクトリのパス（省略可）
+
 hosts:
-  - md5: e7d8577877bbfda3608a3c2679e56a18  # MD5 hash of hostname
-    branch: environments/macbook/2025        # Git branch for this environment
+  - md5: e7d8577877bbfda3608a3c2679e56a18  # ホスト名の MD5 ハッシュ
+    branch: environments/macbook/2025       # この環境の Git ブランチ
     targets:
-      - target: "~/.tmux.conf"              # Source file on local system
-        nukegara: "tmux.conf"               # Destination in worktree
-      - target: "~/.config/nvim"            # Can also be a directory
+      - target: "~/.tmux.conf"             # ローカルのパス
+        nukegara: "tmux.conf"              # worktree 内の相対パス
+      - target: "~/.config/nvim"           # ディレクトリも指定可
         nukegara: "config/nvim"
 ```
 
-### Getting Your Host's MD5
-
-To find your host's MD5 hash:
+### ホストの MD5 ハッシュ取得
 
 ```bash
 ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`uname -n\`.strip)"
 ```
 
-## Setup
+### master/ ディレクトリ
 
-1. **Create environment branch**:
+複数の環境に共通して適用したいファイルを置く場所。
+
+- `nukegara diff` で master と各 env の差分を確認（競合は赤表示）
+- `nukegara apply` で master の内容を env worktree に反映（競合は master で上書き）
+- env にしか存在しないファイルは `[env-only]` として表示（変更されない）
+
+## セットアップ
+
+1. **環境ブランチを作成する**:
 
 ```bash
 git checkout -b environments/macbook/2025
@@ -65,51 +67,66 @@ git push -u origin environments/macbook/2025
 git checkout main
 ```
 
-2. **Create worktree**:
+2. **worktree を作成する**:
 
 ```bash
 git worktree add environments/macbook/2025 environments/macbook/2025
 ```
 
-3. **Configure targets.yaml**:
+3. **targets.yaml に設定を追加する**:
 
-- Add your host's MD5 hash
-- Specify the branch name
-- List files/directories to sync
+- MD5 ハッシュ、ブランチ名、対象ファイルを記載する
 
-4. **Run sync**:
+4. **ローカルから worktree に同期する**:
 
 ```bash
-ruby run.rb
+ruby run.rb local pull --execute
 ```
 
-## Usage
+## 使い方
 
-### Sync files to worktree
+### local サブコマンド - ローカル ↔ env worktree
 
 ```bash
-ruby run.rb
+# ローカル → worktree（ドライラン）
+ruby run.rb local pull
+
+# ローカル → worktree（実行）
+ruby run.rb local pull --execute
+
+# worktree → ローカル（ドライラン）
+ruby run.rb local apply
+
+# worktree → ローカル（実行）
+ruby run.rb local apply --execute
+
+# ローカルと worktree の差分確認
+ruby run.rb local diff
 ```
 
-This will:
-1. Identify your host by MD5 hash
-2. Find matching configuration in `targets.yaml`
-3. Copy specified files/directories to the worktree
-4. Skip files that haven't changed
-
-### Commit and push changes
+### nukegara サブコマンド - master ↔ env worktree
 
 ```bash
-cd environments/macbook/2025
-git add .
-git commit -m "Update dotfiles"
-git push
+# master と env の差分確認（競合は赤、env-only は水色）
+ruby run.rb nukegara diff
+
+# master の内容を env に反映（ドライラン）
+ruby run.rb nukegara apply
+
+# master の内容を env に反映（実行）
+ruby run.rb nukegara apply --execute
 ```
 
-## Example Workflow
+## 典型的なワークフロー
 
-1. Make changes to your local dotfiles (e.g., edit `~/.tmux.conf`)
-2. Run `ruby run.rb` to sync changes to the worktree
-3. Review changes in the worktree directory
-4. Commit and push to the environment branch
-5. On another machine with the same environment, pull the changes and deploy
+1. ローカルのドットファイルを編集する（例: `~/.tmux.conf`）
+2. 変更を確認する: `ruby run.rb local diff`
+3. worktree に同期する: `ruby run.rb local pull --execute`
+4. worktree でコミット・プッシュする:
+   ```bash
+   cd environments/macbook/2025
+   git add .
+   git commit -m "update dotfiles"
+   git push
+   ```
+5. 別のマシンで反映する: `ruby run.rb local apply --execute`
