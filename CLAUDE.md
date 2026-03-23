@@ -4,7 +4,7 @@
 
 ## リポジトリの概要
 
-このリポジトリは Git ブランチを使って環境ごとのドットファイルを管理する。各ブランチには特定の環境の設定ファイルが含まれており、main ブランチにはホスト自動識別に基づいてローカルシステムと Git worktree の間でドットファイルを同期するための管理スクリプト（`run.rb` と `targets.yaml`）が含まれる。
+このリポジトリは Git ブランチを使って環境ごとのドットファイルを管理する。各ブランチには特定の環境の設定ファイルが含まれており、main ブランチにはホスト自動識別に基づいてローカルシステムと Git worktree の間でドットファイルを同期するための管理スクリプト（`nukegara.rb` と `targets.yaml`）が含まれる。
 
 ## ブランチ構成
 
@@ -19,7 +19,7 @@
 
 ### ホスト自動識別
 - 各ホストはホスト名（`uname -n`）の MD5 ハッシュで識別される
-- `run.rb` スクリプトが現在のホストを自動検出し、`targets.yaml` から一致する設定を探す
+- `nukegara.rb` スクリプトが現在のホストを自動検出し、`targets.yaml` から一致する設定を探す
 - ローカルシステムと適切な Git worktree ディレクトリの間でファイルが同期される
 
 ### 設定管理
@@ -34,6 +34,7 @@
 - 複数の環境に共通して適用したいファイルを置く場所
 - env ブランチと master の同名ファイルは `conflict` として検出される
 - `nukegara diff` で差分確認、`nukegara apply` で master の内容を env に反映できる
+- `nukegara promote` で env の内容を master に昇格できる（引数なし: 全競合ファイル、パス指定: 特定ファイル）
 
 ### 環境ブランチでの作業
 - 各環境ブランチは独立していて、独自のドットファイルを持つ
@@ -53,22 +54,31 @@
 ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`uname -n\`.strip)"
 
 # ローカルと worktree の差分確認
-ruby run.rb local diff
+ruby nukegara.rb local diff
 
 # ローカル → worktree に同期する（ドライラン）
-ruby run.rb local pull
+ruby nukegara.rb local pull
 
 # ローカル → worktree に同期する（実行）
-ruby run.rb local pull --execute
+ruby nukegara.rb local pull --execute
 
 # worktree → ローカルに反映する（実行）
-ruby run.rb local apply --execute
+ruby nukegara.rb local apply --execute
 
 # master と env の差分確認
-ruby run.rb nukegara diff
+ruby nukegara.rb nukegara diff
 
 # master の内容を env に反映する（実行）
-ruby run.rb nukegara apply --execute
+ruby nukegara.rb nukegara apply --execute
+
+# env の内容を master に昇格する（全競合ファイル、ドライラン）
+ruby nukegara.rb nukegara promote
+
+# env の内容を master に昇格する（実行）
+ruby nukegara.rb nukegara promote --execute
+
+# 特定のファイルを master に昇格する（実行）
+ruby nukegara.rb nukegara promote config/nvim/init.lua --execute
 
 # 全ブランチ（環境ブランチ含む）を一覧表示する
 git branch -a
@@ -105,10 +115,10 @@ git worktree remove environments/<environment-branch>
 2. **ローカルの変更を worktree に同期する**:
    ```bash
    # 差分確認
-   ruby run.rb local diff
+   ruby nukegara.rb local diff
 
    # 同期実行
-   ruby run.rb local pull --execute
+   ruby nukegara.rb local pull --execute
    ```
 
 3. **変更をコミット・プッシュする**:
@@ -127,7 +137,7 @@ git worktree remove environments/<environment-branch>
    cd environments/macbook/2025
    git pull
    cd ../..
-   ruby run.rb local apply --execute
+   ruby nukegara.rb local apply --execute
    ```
 
 ## targets.yaml の設定
@@ -162,7 +172,7 @@ hosts:
 ## 開発メモ
 
 - このリポジトリは環境ごとにブランチを分ける戦略を採用している
-- main ブランチには共通ツール（`run.rb`、`targets.yaml`）とドキュメントが含まれる
+- main ブランチには共通ツール（`nukegara.rb`、`targets.yaml`）とドキュメントが含まれる
 - 環境ブランチは独立していて環境固有の内容を持つ
 - 複数の環境を同時に扱うには git worktree を使う
-- `run.rb` は Thor フレームワークを使ったサブコマンド CLI として実装されている
+- `nukegara.rb` は Thor フレームワークを使ったサブコマンド CLI として実装されている
