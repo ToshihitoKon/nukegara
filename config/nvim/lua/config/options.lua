@@ -12,6 +12,12 @@ vim.opt.clipboard = "unnamedplus"
 -- for nvim-cmp Highlight color
 vim.api.nvim_set_hl(0, "CmpItemKindCopilot", {fg ="#6CC644"})
 
+-- auto reload files changed outside of nvim
+vim.api.nvim_create_autocmd({ "WinEnter", "FocusGained", "BufEnter" }, {
+  pattern = "*",
+  command = "checktime",
+})
+
 vim.opt.backspace = "indent,eol,start"
 vim.opt.wildmenu = true
 vim.opt.cmdheight = 1
@@ -39,7 +45,8 @@ vim.opt.smartcase = true
 vim.opt.modeline = true
 vim.opt.cursorline = true
 vim.opt.mouse = ''
-vim.opt.scrolloff = 5
+vim.opt.scrolloff = 8
+vim.opt.sidescrolloff = 8
 
 vim.opt.background = "dark"
 

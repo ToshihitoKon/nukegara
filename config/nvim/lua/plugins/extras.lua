@@ -1,0 +1,205 @@
+---@diagnostic disable: undefined-global
+
+-- Color scheme (must be set up before lualine)
+require("catppuccin").setup({
+    flavour = "mocha",
+    transparent_background = true,
+    integrations = {
+        -- https://github.com/catppuccin/nvim?tab=readme-ov-file#integrations
+        cmp = true,
+        gitsigns = true,
+        mason = true,
+        neotree = true,
+        -- copilot_vim = true,
+        treesitter = true,
+        native_lsp = {
+            enabled = true,
+            virtual_text = {
+                errors = { "italic" },
+                hints = { "italic" },
+                warnings = { "italic" },
+                information = { "italic" },
+                ok = { "italic" },
+            },
+            underlines = {
+                errors = { "underline" },
+                hints = { "underline" },
+                warnings = { "underline" },
+                information = { "underline" },
+                ok = { "underline" },
+            },
+            inlay_hints = {
+                background = true,
+            },
+        },
+    }
+})
+vim.cmd.colorscheme "catppuccin"
+
+-- alpha
+local startify = require("alpha.themes.startify")
+startify.file_icons.provider = "devicons"
+require("alpha").setup(
+    startify.config
+)
+
+local function buffer_name(buf)
+    return vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
+end
+
+require("noice").setup({
+    cmdline = {
+        view = "cmdline_popup",
+    },
+    lsp = {
+        -- override markdown rendering so that **cmp** and other plugins use **Treesitter**
+        override = {
+            ["vim.lsp.util.convert_input_to_markdown_lines"] = true,
+            ["vim.lsp.util.stylize_markdown"] = true,
+            -- ["cmp.entry.get_documentation"] = true, -- requires hrsh7th/nvim-cmp
+        },
+    },
+    -- you can enable a preset for easier configuration
+    presets = {
+        bottom_search = true,
+        command_palette = true,
+        long_message_to_split = false,
+        inc_rename = false,
+        lsp_doc_border = true,
+    },
+})
+
+require('lualine').setup({
+    options = {
+        -- https://github.com/nvim-lualine/lualine.nvim/blob/master/THEMES.md
+        theme = "material",
+        globalstatus = true,
+    },
+
+    extensions = { 'neo-tree', 'mason', 'toggleterm' },
+
+    tabline = {
+        lualine_a = { 'branch' },
+        lualine_b = { 'tabs' },
+        lualine_c = {
+            'filename',
+            'diagnostic',
+        },
+        lualine_x = {},
+        lualine_y = {},
+        lualine_z = {}
+    },
+
+    -- for noice
+    -- https://github.com/folke/noice.nvim?tab=readme-ov-file#-statusline-components
+    sections = {
+        lualine_x = {
+            {
+                require("noice").api.status.message.get_hl,
+                cond = require("noice").api.status.message.has,
+            },
+            {
+                require("noice").api.status.command.get,
+                cond = require("noice").api.status.command.has,
+                color = { fg = "#ff9e64" },
+            },
+            {
+                require("noice").api.status.mode.get,
+                cond = require("noice").api.status.mode.has,
+                color = { fg = "#ff9e64" },
+            },
+            {
+                require("noice").api.status.search.get,
+                cond = require("noice").api.status.search.has,
+                color = { fg = "#ff9e64" },
+            },
+        },
+    },
+})
+
+local builtin = require('statuscol.builtin')
+require('statuscol').setup({
+    relculright = true,
+    bt_ignore = { 'terminal', 'nofile' },
+    segments = {
+        {
+            sign = {
+                namespace = { 'gitsigns' },
+            },
+        },
+        {
+            sign = {
+                namespace = { 'diagnostic' },
+            },
+        },
+        {
+            text = { builtin.lnumfunc },
+        },
+        { text = { ' ' } },
+    },
+})
+
+-- Trouble: LSP Diagnostics viewer
+require('trouble').setup {} -- TODO: いい感じにする
+
+require('scrollview').setup({
+    excluded_filetypes = {},
+    current_only = true,
+    base = 'right',
+    -- column = 80,
+    signs_overflow = 'left',
+    signs_on_startup = { 'all' },
+    diagnostics_severities = { vim.diagnostic.severity.ERROR }
+})
+
+require("hlchunk").setup({
+    chunk = {
+        enable = true,
+        duration = 0,
+        delay = 0,
+    },
+    indent = {
+        enable = true,
+        delay = 0,
+        style = {
+            "#444444"
+        },
+        chars = {
+            "│",
+        },
+    }
+})
+
+require 'rainbow_csv'.setup()
+
+require("which-key").setup{
+    preset = 'modern',
+    triggers = {
+        { "<auto>", mode = "nxso" },
+        { "t", mode = "n" }, -- for personal useful keymaps
+    },
+}
+
+require("markview").setup({
+    preview = { enable = false }
+});
+
+require("zen-mode").setup {
+    window = {
+        width = 120,
+        height = 0.9,
+    },
+    plugins = {
+        options = {
+            ruler = false, -- disables the ruler text in the cmd line area
+            showcmd = true, -- disables the command in the last line of the screen
+            laststatus = 0, -- turn off the statusline in zen mode
+        },
+        gitsigns = { enabled = true }, -- disables git signs
+        tmux = { enabled = true }, -- disables the tmux statusline
+        alacritty = {
+            enabled = true,
+            font = "14", -- font size
+        },
+    },
+}

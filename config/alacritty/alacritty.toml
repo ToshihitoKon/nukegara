@@ -4,3 +4,8 @@ opacity = 0.98
 [font]
 normal = {family = "SauceCodePro Nerd Font Mono"}
 #normal = {family = "RobotoMono Nerd Font Mono"}
+
+[[keyboard.bindings]]
+key = "Return"
+mods = "Shift"
+chars = "\u001B\r"
