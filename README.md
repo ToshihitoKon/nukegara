@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🐍 nukegara
+# 🐚 nukegara
 
 ### Dotfiles that shed cleanly across every machine you own.
 
@@ -15,8 +15,8 @@
 
 ---
 
-> **nukegara** (抜け殻) — *the empty shell a snake leaves behind when it sheds.*
-> Each machine sheds its own configuration into its own branch, and `nukegara` keeps every shell in sync.
+> **nukegara** (抜け殻) — *the empty husk a cicada leaves clinging to a branch after it molts and flies off.*
+> Each machine molts its own configuration onto its own branch, and `nukegara` keeps every husk in sync.
 
 ## ✨ Why nukegara?
 
