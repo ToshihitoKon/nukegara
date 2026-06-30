@@ -39,7 +39,7 @@ require('pckr').add {
     { "folke/trouble.nvim" },
     { "nvim-telescope/telescope.nvim" },
     { "kelly-lin/telescope-ag" },
-    { 'nvim-treesitter/nvim-treesitter', { 'do', ':TSUpdate' } },
+    { 'nvim-treesitter/nvim-treesitter', branch = 'main' },
     { 'akinsho/toggleterm.nvim', tag = '*' },
     { 'tpope/vim-repeat' },
 
@@ -90,4 +90,6 @@ require('pckr').add {
     { 'folke/which-key.nvim' },
     { 'mattn/emmet-vim' },
     { 'simeji/winresizer' },
+    { 'OXY2DEV/markview.nvim' },
+    { 'folke/zen-mode.nvim' },
 }

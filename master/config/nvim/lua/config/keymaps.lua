@@ -20,14 +20,23 @@ end
 
 -- Useful tool shortcuts. use 't' prefix
 -- Gitsigns
-vim.keymap.set('n', 'th', ':Gitsigns preview_hunk_inline<CR>', { silent = true })
-keymap_w_repeat('n', 'tj', 'Gitsigns nav_hunk next')
+vim.keymap.set('n', 'tgp', ':Gitsigns preview_hunk_inline<CR>', { silent = true })
+keymap_w_repeat('n', 'tgj', 'Gitsigns nav_hunk next')
 
 -- Telescope
-vim.keymap.set('n', 'td', ':Telescope diagnostics<CR>', { silent = true })
-vim.keymap.set('n', 'tf', ':Telescope find_files<CR>', { silent = true })
-vim.keymap.set('n', 'ty', ':Telescope live_grep<CR>', { silent = true })
-vim.keymap.set('n', 'tn', ':Telescope noice<CR>', { silent = true })
+vim.keymap.set('n', 'ttd', ':Telescope diagnostics<CR>', { silent = true })
+vim.keymap.set('n', 'ttf', ':Telescope find_files<CR>', { silent = true })
+vim.keymap.set('n', 'tty', ':Telescope live_grep<CR>', { silent = true })
+vim.keymap.set('n', 'ttn', ':Telescope noice<CR>', { silent = true })
+
+-- Markview: markdown preview
+keymap_w_repeat('n', 'tmt', 'Markview toggle')
+keymap_w_repeat('n', 'tms', 'Markview splitToggle')
+
+-- NeoTree
+vim.keymap.set('n', 'tne', ':Neotree reveal<CR>', { silent = true })
+
+---
 
 -- LSP
 vim.keymap.set('n', '<Space>', ':lua vim.lsp.buf.hover()<CR>', { silent = true })

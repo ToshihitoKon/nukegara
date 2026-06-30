@@ -17,7 +17,8 @@ require('neo-tree').setup({
     },
     filesystem = {
         follow_current_file = {
-            enable = true,
+            enabled = true,
+            leave_dirs_open = true,
         },
         filtered_items = {
             hide_gitignored = false,
@@ -94,9 +95,22 @@ require("telescope").setup {
 require('telescope').load_extension('noice')
 require('telescope-ag').setup()
 
-require 'nvim-treesitter.configs'.setup {
-    auto_install = true,
-    highlight = {
-        enable = true,
-    },
-}
+-- nvim-treesitter (main ブランチ / Neovim 0.12 新 API)
+-- 旧 require('nvim-treesitter.configs').setup{} は廃止。
+-- パーサーは install で明示管理し、ハイライトは FileType で vim.treesitter.start() する。
+require('nvim-treesitter').install({
+    'bash', 'css', 'csv', 'dockerfile', 'embedded_template', 'git_config',
+    'git_rebase', 'gitcommit', 'gitignore', 'go', 'gomod', 'gosum', 'groovy',
+    'hcl', 'html', 'ini', 'java', 'javascript', 'json', 'jsonc', 'jsonnet',
+    'lua', 'make', 'markdown', 'nginx', 'properties', 'python', 'rego', 'ruby',
+    'scss', 'sql', 'ssh_config', 'svelte', 'tera', 'terraform', 'tmux', 'toml',
+    'tsx', 'typescript', 'vim', 'vimdoc', 'xml', 'yaml',
+})
+
+vim.api.nvim_create_autocmd('FileType', {
+    callback = function(args)
+        -- パーサーが存在する filetype だけハイライトを開始する。
+        -- 未対応 filetype で start() を呼ぶと no parser エラーになるため pcall で保護。
+        pcall(vim.treesitter.start, args.buf)
+    end,
+})

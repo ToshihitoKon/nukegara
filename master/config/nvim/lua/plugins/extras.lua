@@ -47,15 +47,6 @@ local function buffer_name(buf)
     return vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
 end
 
-local function alternate_buffer_name()
-    local current = vim.fn.bufnr()
-    local alt_buf = vim.fn.bufnr("#")
-    if alt_buf == -1 or not vim.api.nvim_buf_is_valid(alt_buf) or (current == alt_buf) then
-        return ""
-    end
-    return "alt: " .. buffer_name(alt_buf)
-end
-
 require("noice").setup({
     cmdline = {
         view = "cmdline_popup",
@@ -80,7 +71,8 @@ require("noice").setup({
 
 require('lualine').setup({
     options = {
-        theme = "catppuccin",
+        -- https://github.com/nvim-lualine/lualine.nvim/blob/master/THEMES.md
+        theme = "material",
         globalstatus = true,
     },
 
@@ -93,9 +85,7 @@ require('lualine').setup({
             'filename',
             'diagnostic',
         },
-        lualine_x = {
-            alternate_buffer_name
-        },
+        lualine_x = {},
         lualine_y = {},
         lualine_z = {}
     },
@@ -187,5 +177,29 @@ require("which-key").setup{
     triggers = {
         { "<auto>", mode = "nxso" },
         { "t", mode = "n" }, -- for personal useful keymaps
+    },
+}
+
+require("markview").setup({
+    preview = { enable = false }
+});
+
+require("zen-mode").setup {
+    window = {
+        width = 120,
+        height = 0.9,
+    },
+    plugins = {
+        options = {
+            ruler = false, -- disables the ruler text in the cmd line area
+            showcmd = true, -- disables the command in the last line of the screen
+            laststatus = 0, -- turn off the statusline in zen mode
+        },
+        gitsigns = { enabled = true }, -- disables git signs
+        tmux = { enabled = true }, -- disables the tmux statusline
+        alacritty = {
+            enabled = true,
+            font = "14", -- font size
+        },
     },
 }

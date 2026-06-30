@@ -45,7 +45,8 @@ vim.opt.smartcase = true
 vim.opt.modeline = true
 vim.opt.cursorline = true
 vim.opt.mouse = ''
-vim.opt.scrolloff = 5
+vim.opt.scrolloff = 8
+vim.opt.sidescrolloff = 8
 
 vim.opt.background = "dark"
 
