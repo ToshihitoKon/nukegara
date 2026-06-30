@@ -476,6 +476,9 @@ class Git < Thor
     @config.check_worktree_exists!(host_config)
 
     run_git(host_config, "status", "-sb")
+
+    dirty = run_git(host_config, "status", "--porcelain", capture: true)
+    puts "\nNext: `nukegara git stage` then `nukegara git commit` to record these changes." unless dirty.strip.empty?
   end
 
   desc "stage", "Stage all changes in the env worktree (git add -A)"
@@ -488,6 +491,7 @@ class Git < Thor
 
     run_git(host_config, "add", "-A")
     run_git(host_config, "status", "-sb")
+    puts "\nNext: `nukegara git commit` to commit the staged changes."
   end
 
   # Default commit message used when -m is omitted, matching the manual
@@ -500,10 +504,11 @@ class Git < Thor
     host_config = @config.current_host_config
     @config.check_worktree_exists!(host_config)
 
-    abort("Nothing staged to commit. Run `git stage` first.") unless anything_staged?(host_config)
+    abort("Nothing staged to commit. Run `nukegara git stage` first.") unless anything_staged?(host_config)
 
     message = options[:message] || DEFAULT_COMMIT_MESSAGE
     run_git(host_config, "commit", "-m", message)
+    puts "\nNext: `nukegara git push` to push the branch to its remote."
   end
 
   desc "push", "Push the env worktree branch to its remote"

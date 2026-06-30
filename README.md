@@ -1,142 +1,158 @@
-# nukegara - 環境別ドットファイル管理
+<div align="center">
 
-Git ブランチを使って環境ごとのドットファイルを管理するシステム。MD5 ベースのホスト自動識別と、master ディレクトリによる共通設定配布をサポートする。
+# 🐍 nukegara
 
-## 概要
+### Dotfiles that shed cleanly across every machine you own.
 
-`nukegara` は Git ブランチで複数環境のドットファイルを管理する。各環境は独自のブランチを持ち、main ブランチの管理スクリプトがホストを自動識別して適切な worktree との同期を行う。
+*Per-environment dotfile management powered by plain Git branches — no daemons, no symlink jungle, no magic.*
 
-## 特徴
+[![Ruby](https://img.shields.io/badge/Ruby-CC342D?logo=ruby&logoColor=white)](https://www.ruby-lang.org/)
+[![Built with Thor](https://img.shields.io/badge/CLI-Thor-blueviolet)](https://github.com/rails/thor)
+[![Powered by git worktree](https://img.shields.io/badge/git-worktree-F05032?logo=git&logoColor=white)](https://git-scm.com/docs/git-worktree)
+![Zero dependencies beyond Ruby](https://img.shields.io/badge/dependencies-just_Ruby-success)
 
-- **ホスト自動識別**: ホスト名の MD5 ハッシュでマシンを識別
-- **ブランチ = 環境**: 環境ごとに独立した Git ブランチで管理
-- **git worktree 活用**: 複数環境を同時に扱える
-- **スマートな差分同期**: 変更があったファイルのみコピー
-- **ドライランモード**: デフォルトは確認のみ、`--execute` で実行
+</div>
 
-## リポジトリ構造
+---
+
+> **nukegara** (抜け殻) — *the empty shell a snake leaves behind when it sheds.*
+> Each machine sheds its own configuration into its own branch, and `nukegara` keeps every shell in sync.
+
+## ✨ Why nukegara?
+
+Most dotfile managers ask you to bend your home directory around symlinks, bare repos, or a templating DSL. `nukegara` takes a different bet: **one Git branch per environment, one tiny Ruby script to move files between your filesystem and the right branch's worktree.** That's the whole idea.
+
+- 🔍 **Zero-config host detection** — machines are identified by the MD5 hash of their hostname. Clone everywhere, run anywhere; the right config just follows.
+- 🌿 **Branch = environment** — your MacBook, your Arch box, and your dev sandbox each live on their own branch. No cross-contamination.
+- 🌲 **Built on `git worktree`** — every environment is checked out side by side. Edit, diff, and commit them all from one repo.
+- 🎯 **Surgical sync** — only changed files move. `exclude` globs keep logs and junk out of version control.
+- 🛟 **Dry-run by default** — every destructive command previews itself first. Add `--execute` only when you mean it.
+- 🧬 **A shared `master/` layer** — promote a polished config to `master/` once, then fan it out to every environment that wants it.
+
+## 🚀 Quickstart
+
+```bash
+# 1. Find this machine's fingerprint
+ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`uname -n\`.strip)"
+
+# 2. Add the host + its target files to targets.yaml (see Configuration)
+
+# 3. Create the worktree for this host's branch (creates & pushes the branch if needed)
+ruby nukegara.rb git setup
+
+# 4. Pull your current dotfiles into the worktree
+ruby nukegara.rb local pull --execute
+```
+
+That's it. Your live dotfiles are now mirrored into a versioned Git branch.
+
+## 🗂️ Layout
 
 ```
 .
-├── nukegara.rb         # メイン管理スクリプト
-├── targets.yaml        # ホスト設定・対象ファイル定義
-├── master/             # 全環境共通のマスター設定（任意）
-└── environments/       # Git worktree（.gitignore 推奨）
+├── nukegara.rb         # the entire tool, in one Ruby file
+├── targets.yaml        # hosts, branch mappings, file targets
+├── master/             # optional: configs shared across environments
+└── environments/       # git worktrees, one per branch
     └── macbook/2025/
 ```
 
-## 設定
+## ⚙️ Configuration
 
-### targets.yaml
+Everything lives in `targets.yaml`. A host is matched by its hostname MD5, mapped to a branch, and given a list of files to track.
 
 ```yaml
 master:
-  path: master/         # master ディレクトリのパス（省略可）
+  path: master/                                # shared-config dir (optional)
 
 hosts:
-  - md5: e7d8577877bbfda3608a3c2679e56a18  # ホスト名の MD5 ハッシュ
-    branch: environments/macbook/2025       # この環境の Git ブランチ
+  - md5: e7d8577877bbfda3608a3c2679e56a18       # MD5 of `uname -n`
+    branch: environments/macbook/2025           # the branch this host syncs to
     targets:
-      - target: "~/.tmux.conf"             # ローカルのパス
-        nukegara: "tmux.conf"              # worktree 内の相対パス
-      - target: "~/.config/nvim"           # ディレクトリも指定可
+      - target: "~/.tmux.conf"                  # path on your filesystem
+        nukegara: "tmux.conf"                   # path inside the worktree
+      - target: "~/.zshrc"
+        nukegara: "zshrc"
+      - target: "~/.config/nvim"                # directories work too
         nukegara: "config/nvim"
+        exclude:                                # glob-based skip list (optional)
+          - "**/*.log"                          # ** crosses directories; * does not
+      - target: "~/.config/alacritty"
+        nukegara: "config/alacritty"
 ```
 
-### ホストの MD5 ハッシュ取得
+| Key                  | What it does                                                              |
+| -------------------- | ------------------------------------------------------------------------- |
+| `master.path`        | Directory holding configs shared across environments. Optional.           |
+| `md5`                | MD5 hash of the hostname (`uname -n`), used to auto-pick the host.        |
+| `branch`             | The Git branch storing this environment's dotfiles.                       |
+| `targets[].target`   | Path on the local filesystem (`~` expands to `$HOME`).                    |
+| `targets[].nukegara` | Matching relative path inside the worktree.                               |
+| `targets[].exclude`  | `File.fnmatch` globs to skip. Applies to **every** command consistently.  |
+
+## 🧭 Commands
+
+`nukegara` groups its work into four subcommand families. Run `ruby nukegara.rb tree` any time to see the full map.
+
+### 🩺 `health` — the one-line status check
 
 ```bash
-ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`uname -n\`.strip)"
+ruby nukegara.rb health    # compact summary of diffs across local <-> env <-> master
 ```
 
-### master/ ディレクトリ
-
-複数の環境に共通して適用したいファイルを置く場所。
-
-- `nukegara diff` で master と各 env の差分を確認（競合は赤表示）
-- `nukegara apply` で master の内容を env worktree に反映（競合は master で上書き）
-- `nukegara promote` で env の内容を master に昇格（env-only ファイルも対象）
-- env にしか存在しないファイルは `[env-only]` として表示（apply では変更されない）
-
-## セットアップ
-
-1. **環境ブランチを作成する**:
+### 💻 `local` — your filesystem ⇄ the env worktree
 
 ```bash
-git checkout -b environments/macbook/2025
-git push -u origin environments/macbook/2025
-git checkout main
+ruby nukegara.rb local diff             # what's different?
+ruby nukegara.rb local pull             # filesystem -> worktree (dry-run)
+ruby nukegara.rb local pull --execute   # filesystem -> worktree (for real)
+ruby nukegara.rb local apply --execute  # worktree -> filesystem (deploy to a new machine)
 ```
 
-2. **worktree を作成する**:
+### 🌐 `master` — the shared layer ⇄ the env worktree
 
 ```bash
-git worktree add environments/macbook/2025 environments/macbook/2025
+ruby nukegara.rb master diff                       # master vs. this env (conflicts in red)
+ruby nukegara.rb master apply --execute            # push master's version into the env
+ruby nukegara.rb master promote                    # promote all conflicting env files (dry-run)
+ruby nukegara.rb master promote --execute          # ...for real
+ruby nukegara.rb master promote config/nvim/init.lua --execute   # promote one specific file
 ```
 
-3. **targets.yaml に設定を追加する**:
-
-- MD5 ハッシュ、ブランチ名、対象ファイルを記載する
-
-4. **ローカルから worktree に同期する**:
+### 🔧 `git` — worktree git, without the `cd`
 
 ```bash
-ruby nukegara.rb local pull --execute
+ruby nukegara.rb git status               # git status of the env worktree
+ruby nukegara.rb git stage                # git add -A
+ruby nukegara.rb git commit -m "..."      # commit staged changes (message optional)
+ruby nukegara.rb git push                 # push the branch
+ruby nukegara.rb git setup                # create the worktree (and branch) for this host
 ```
 
-## 使い方
-
-### local サブコマンド - ローカル ↔ env worktree
+## 🔄 A day in the life
 
 ```bash
-# ローカル → worktree（ドライラン）
-ruby nukegara.rb local pull
+# You tweaked ~/.tmux.conf on your laptop. Capture it:
+ruby nukegara.rb local diff               # eyeball the change
+ruby nukegara.rb local pull --execute     # mirror it into the worktree
 
-# ローカル → worktree（実行）
-ruby nukegara.rb local pull --execute
+# Commit and push it from the branch:
+ruby nukegara.rb git stage
+ruby nukegara.rb git commit -m "tmux: bigger scrollback"
+ruby nukegara.rb git push
 
-# worktree → ローカル（ドライラン）
-ruby nukegara.rb local apply
-
-# worktree → ローカル（実行）
-ruby nukegara.rb local apply --execute
-
-# ローカルと worktree の差分確認
-ruby nukegara.rb local diff
+# On another machine with the same environment branch:
+ruby nukegara.rb git setup
+git -C environments/macbook/2025 pull
+ruby nukegara.rb local apply --execute    # roll the config onto disk
 ```
 
-### nukegara サブコマンド - master ↔ env worktree
+## 🧪 How host detection works
 
-```bash
-# master と env の差分確認（競合は赤、env-only は水色）
-ruby nukegara.rb nukegara diff
+Each host hashes its own name with MD5 (`uname -n`). At startup `nukegara.rb` computes the local hash, finds the matching entry in `targets.yaml`, and operates only on that host's branch and targets. Move to a new machine, add its hash, and the same commands keep working — no flags, no environment variables.
 
-# master の内容を env に反映（ドライラン）
-ruby nukegara.rb nukegara apply
+---
 
-# master の内容を env に反映（実行）
-ruby nukegara.rb nukegara apply --execute
-
-# env の内容を master に昇格（全競合ファイル、ドライラン）
-ruby nukegara.rb nukegara promote
-
-# env の内容を master に昇格（全競合ファイル、実行）
-ruby nukegara.rb nukegara promote --execute
-
-# 特定のファイルを master に昇格（競合・env-only どちらも可）
-ruby nukegara.rb nukegara promote config/nvim/init.lua --execute
-```
-
-## 典型的なワークフロー
-
-1. ローカルのドットファイルを編集する（例: `~/.tmux.conf`）
-2. 変更を確認する: `ruby nukegara.rb local diff`
-3. worktree に同期する: `ruby nukegara.rb local pull --execute`
-4. worktree でコミット・プッシュする:
-   ```bash
-   cd environments/macbook/2025
-   git add .
-   git commit -m "update dotfiles"
-   git push
-   ```
-5. 別のマシンで反映する: `ruby nukegara.rb local apply --execute`
+<div align="center">
+<sub>Built with Ruby + Thor + <code>git worktree</code>. One file, no daemons, no surprises.</sub>
+</div>
