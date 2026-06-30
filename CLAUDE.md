@@ -33,8 +33,8 @@
 - `targets.yaml` の `master.path` で設定する共通設定ディレクトリ
 - 複数の環境に共通して適用したいファイルを置く場所
 - env ブランチと master の同名ファイルは `conflict` として検出される
-- `nukegara diff` で差分確認、`nukegara apply` で master の内容を env に反映できる
-- `nukegara promote` で env の内容を master に昇格できる（引数なし: 全競合ファイル、パス指定: 特定ファイル）
+- `master diff` で差分確認、`master apply` で master の内容を env に反映できる
+- `master promote` で env の内容を master に昇格できる（引数なし: 全競合ファイル、パス指定: 特定ファイル）
 
 ### 環境ブランチでの作業
 - 各環境ブランチは独立していて、独自のドットファイルを持つ
@@ -53,6 +53,9 @@
 # ホストの MD5 ハッシュを取得する
 ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`uname -n\`.strip)"
 
+# 3ステージ（local <-> env <-> master）の差分有無を1行サマリで確認
+ruby nukegara.rb health
+
 # ローカルと worktree の差分確認
 ruby nukegara.rb local diff
 
@@ -66,19 +69,36 @@ ruby nukegara.rb local pull --execute
 ruby nukegara.rb local apply --execute
 
 # master と env の差分確認
-ruby nukegara.rb nukegara diff
+ruby nukegara.rb master diff
 
 # master の内容を env に反映する（実行）
-ruby nukegara.rb nukegara apply --execute
+ruby nukegara.rb master apply --execute
 
 # env の内容を master に昇格する（全競合ファイル、ドライラン）
-ruby nukegara.rb nukegara promote
+ruby nukegara.rb master promote
 
 # env の内容を master に昇格する（実行）
-ruby nukegara.rb nukegara promote --execute
+ruby nukegara.rb master promote --execute
 
 # 特定のファイルを master に昇格する（実行）
-ruby nukegara.rb nukegara promote config/nvim/init.lua --execute
+ruby nukegara.rb master promote config/nvim/init.lua --execute
+
+# env worktree の git status を確認する
+ruby nukegara.rb git status
+
+# env worktree の変更を全 add する（git add -A）
+ruby nukegara.rb git stage
+
+# ステージ済みの変更をコミットする（メッセージ省略時は "update dotfiles"）
+# 事前に git stage していないとエラーで終了する
+ruby nukegara.rb git commit
+ruby nukegara.rb git commit -m "fix tmux config"
+
+# env worktree のブランチを push する
+ruby nukegara.rb git push
+
+# このホストの設定ブランチの worktree を作成する（必要ならブランチ作成・push も行う）
+ruby nukegara.rb git setup
 
 # 全ブランチ（環境ブランチ含む）を一覧表示する
 git branch -a
@@ -100,16 +120,12 @@ git worktree remove environments/<environment-branch>
    # ホストの MD5 ハッシュを取得する
    ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`uname -n\`.strip)"
 
-   # 環境ブランチを作成する（必要な場合）
-   git checkout -b environments/macbook/2025
-   git push -u origin environments/macbook/2025
-   git checkout main
-
-   # worktree を作成する
-   git worktree add environments/macbook/2025 environments/macbook/2025
-
    # targets.yaml に設定を追加する
    # （md5、branch、対象ファイルを指定する）
+
+   # 設定したブランチの worktree を作成する
+   # （ブランチが未作成ならブランチ作成と push も自動で行う）
+   ruby nukegara.rb git setup
    ```
 
 2. **ローカルの変更を worktree に同期する**:
@@ -123,20 +139,24 @@ git worktree remove environments/<environment-branch>
 
 3. **変更をコミット・プッシュする**:
    ```bash
-   cd environments/macbook/2025
-   git add .
-   git commit -m "update dotfiles"
-   git push
-   cd ../..
+   # worktree の状態を確認する
+   ruby nukegara.rb git status
+
+   # 全変更を add する
+   ruby nukegara.rb git stage
+
+   # ステージ済みの変更をコミットする（メッセージは省略可）
+   ruby nukegara.rb git commit -m "update dotfiles"
+
+   # push する
+   ruby nukegara.rb git push
    ```
 
 4. **別のマシンにデプロイする**:
    ```bash
    # 同じ環境設定を持つマシン上で実行する
-   git worktree add environments/macbook/2025 environments/macbook/2025
-   cd environments/macbook/2025
-   git pull
-   cd ../..
+   ruby nukegara.rb git setup
+   git -C environments/macbook/2025 pull
    ruby nukegara.rb local apply --execute
    ```
 
@@ -158,6 +178,8 @@ hosts:
         nukegara: "zshrc"
       - target: "~/.config/nvim"
         nukegara: "config/nvim"
+        exclude:
+          - "**/*.log"
       - target: "~/.config/alacritty"
         nukegara: "config/alacritty"
 ```
@@ -168,6 +190,12 @@ hosts:
 - `targets`: ファイル/ディレクトリのマッピングリスト
   - `target`: ローカルシステム上のパス（`~` でホームディレクトリを指定可）
   - `nukegara`: worktree 内の相対パス
+  - `exclude`: 同期対象から除外する glob パターンのリスト（省略可）
+    - `File.fnmatch` の構文で、各ファイルの base からの相対パスにマッチさせる
+    - log ファイルなど worktree に含めたくないファイルを除外するのに使う
+    - 全コマンド（diff/pull/apply/promote）に一貫して効く
+    - `*` は `/` をまたがない。サブディレクトリ以下も含めるには `**/*.log` のように書く
+    - 例: `"**/*.log"`（全階層の `.log`）、`"*.tmp"`（直下のみの `.tmp`）
 
 ## 開発メモ
 
