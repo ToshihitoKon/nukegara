@@ -19,11 +19,11 @@ end
 
 bootstrap_pckr()
 
-require('pckr').add {
+local common = {
     -- core
     {
         "nvim-neo-tree/neo-tree.nvim",
-        tag = "3.33",
+        -- tag = "3.33",
         requires = {
             "nvim-lua/plenary.nvim",
             "MunifTanjim/nui.nvim",
@@ -32,11 +32,9 @@ require('pckr').add {
         lazy = false, -- neo-tree will lazily load itself
     },
     { "karb94/neoscroll.nvim" },
-    { "terrortylor/nvim-comment" },
     { 'ray-x/guihua.lua' },
     { 'rcarriga/nvim-notify' },
     { 'folke/noice.nvim' },
-    { "folke/trouble.nvim" },
     { "nvim-telescope/telescope.nvim" },
     { "kelly-lin/telescope-ag" },
     { 'nvim-treesitter/nvim-treesitter', branch = 'main' },
@@ -47,33 +45,14 @@ require('pckr').add {
     { 'neovim/nvim-lspconfig' },
     { "mason-org/mason.nvim" },
     { "mason-org/mason-lspconfig.nvim" },
-    { 'rachartier/tiny-inline-diagnostic.nvim' },
-    { 'nvimdev/lspsaga.nvim' },
-    { 'hrsh7th/nvim-cmp' },
-    { 'hrsh7th/cmp-nvim-lsp' },
-    { 'hrsh7th/cmp-buffer' },
-    { 'hrsh7th/cmp-path' },
-    { 'hrsh7th/cmp-cmdline' },
-    { 'onsails/lspkind.nvim' },
 
-    -- ai_tools
+    -- git
     { 'lewis6991/gitsigns.nvim' },
     {
         'ruifm/gitlinker.nvim',
         requires = 'nvim-lua/plenary.nvim'
     },
-    -- { 'github/copilot.vim' },
-    { 'zbirenbaum/copilot.lua' },
-    { 'zbirenbaum/copilot-cmp' },
-    {
-        'greggh/claude-code.nvim',
-        requires = {
-            'nvim-lua/plenary.nvim', -- Required for git operations
-        }
-    },
-
-    -- formatting
-    { "stevearc/conform.nvim" },
+    { 'gh-tui-tools/gh-review.nvim' },
 
     -- extras
     { "catppuccin/nvim", as = "catppuccin" },
@@ -88,8 +67,51 @@ require('pckr').add {
         dependencies = { 'nvim-tree/nvim-web-devicons' },
     },
     { 'folke/which-key.nvim' },
-    { 'mattn/emmet-vim' },
     { 'simeji/winresizer' },
     { 'OXY2DEV/markview.nvim' },
     { 'folke/zen-mode.nvim' },
 }
+
+local editing = {
+    { "terrortylor/nvim-comment" },
+    { "folke/trouble.nvim" },
+
+    -- lsp
+    { 'rachartier/tiny-inline-diagnostic.nvim' },
+    { 'nvimdev/lspsaga.nvim' },
+    { 'hrsh7th/nvim-cmp' },
+    { 'hrsh7th/cmp-nvim-lsp' },
+    { 'hrsh7th/cmp-buffer' },
+    { 'hrsh7th/cmp-path' },
+    { 'hrsh7th/cmp-cmdline' },
+    { 'onsails/lspkind.nvim' },
+
+    -- ai_tools
+    -- { 'github/copilot.vim' },
+    { 'zbirenbaum/copilot.lua' },
+    { 'zbirenbaum/copilot-cmp' },
+
+    -- formatting
+    { "stevearc/conform.nvim" },
+
+    { 'mattn/emmet-vim' },
+}
+
+local review = {
+    { 'dlyongemallo/diffview-plus.nvim', tag = '*' },
+}
+
+-- 登録から外すと :Pckr sync の clean で削除されるため、登録は残してロードだけ止める
+local function disable_loading(specs)
+    for _, spec in ipairs(specs) do
+        spec.cond = function() end
+    end
+end
+
+if require('config.profile').is_review then
+    disable_loading(editing)
+else
+    disable_loading(review)
+end
+
+require('pckr').add(vim.list_extend(vim.list_extend(common, editing), review))

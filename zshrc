@@ -172,6 +172,8 @@ bindkey "^p" history-beginning-search-backward-end
 bindkey "^o" history-beginning-search-forward-end
 unset zle_bracketed_paste
 
+source <(fzf --zsh)
+
 setopt hist_ignore_all_dups
 setopt hist_ignore_space
 setopt hist_verify
@@ -187,9 +189,47 @@ SAVEHIST=1000
 
 # mecha mecha benri na command
 alias localhosting="python -m http.server"
-alias tma="tmux a -t \$(tmux ls | grep -v attached | fzf --tmux | sed -e 's/^\\(.*\\)[?:] .*$/\\1/g')"
-alias cpwd="pwd | pbcopy"
-alias zgh="cd \$(ghq list -p | fzf --ignore-case --tmux center,80% --wrap --header \"ghq list -p\")"
+
+# for tmux
+alias tm-attach="tmux a -t \$(tmux ls | grep -v attached | fzf --tmux | sed -e 's/^\\(.*\\)[?:] .*$/\\1/g')"
+tm-rename() {
+  [[ -n $TMUX ]] || return 1
+
+  local upstream pr_number
+  upstream=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)
+  if [[ -n $upstream ]]; then
+    pr_number=$(gh pr view "${upstream#*/}" --json number --jq .number 2>/dev/null)
+  fi
+
+  tmux rename-session "${pr_number:+(${pr_number})}${PWD:t}"
+}
+
+alias zgh="cd \$(ghq root)/\$(ghq list | fzf --ignore-case --tmux center,80% --wrap --header \"ghq list -p\")"
+alias cc="claude"
+alias ccc="claude --continue"
+alias ccr="claude --resume"
+
+# for NeoVim aliases
+nv-ghreview () {NVIM_PROFILE=review nvim +"GHReview $1"}
+nv-diffview () {
+  local selected
+  selected=$(git log --oneline --color=always \
+    | fzf --ansi --no-sort --no-input --preview 'git show --stat --color=always {1}') || return
+  NVIM_PROFILE=review nvim +"DiffviewFileHistory --range=${selected%% *}^..HEAD"
+}
+
+# ~/.bin/cd-* を呼び、親シェルで cd する
+function cd-worktree() {
+  local dir
+  dir=$(command cd-worktree) || return
+  [[ -n "$dir" ]] && cd "$dir"
+}
+
+function cd-tmux() {
+  local dir
+  dir=$(command cd-tmux) || return
+  [[ -n "$dir" ]] && cd "$dir"
+}
 
 alias rm="rm -i"
 alias less="less -MR"
@@ -221,4 +261,8 @@ fi
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
-alias claude-mem='/Users/toshihitokon/.bun/bin/bun "/Users/toshihitokon/.claude/plugins/cache/thedotmack/claude-mem/10.6.1/scripts/worker-service.cjs"'
+# Added by Antigravity CLI installer
+export PATH="/Users/toshihitokon/.local/bin:$PATH"
+
+# Added by the Hunk installer (https://hunk.dev)
+export PATH='/Users/toshihitokon/.hunk/bin':"$PATH"

@@ -50,4 +50,21 @@ vim.opt.sidescrolloff = 8
 
 vim.opt.background = "dark"
 
+-- for fold
+vim.opt.foldmethod = "indent"
+vim.opt.foldlevel = 6 -- 6 以上深いネストはデフォルト fold させて頂く
+function Foldtext()
+  local line = vim.fn.getline(vim.v.foldstart)
+  local count = vim.v.foldend - vim.v.foldstart + 1
+  return string.format("%s (%d lines folded. <Tab> to open.)", line, count)
+end
+
+vim.opt.foldtext = "v:lua.Foldtext()"
+local fillchars = { fold = " " } -- 折りたたんだ際のあまりの部分をスペースにする
+if require('config.profile').is_review then
+    -- 差分の空き行を既定の '-' で埋めると見づらいため空白にする
+    fillchars.diff = " "
+end
+vim.opt.fillchars = fillchars
+
 vim.lsp.log.set_level(vim.log.levels.ERROR)
