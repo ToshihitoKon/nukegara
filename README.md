@@ -98,6 +98,8 @@ When there is a follow-up step, a command ends with a `Next:` block that lists w
 
 As with `git status` and `git diff`, `status` prints one tagged path per file (`[differ]`, `[conflict]`, ...) and `diff` shows contents through `git diff --no-index`. Pass a path exactly as `status` prints it (for `master diff`, a `[conflict]` one) to see just that file, or nothing to see every file. The files are copied into two scratch trees (`worktree/` and `local/`, or `master/` and `env/`) and git compares them in one run, so your pager and colors behave just as they do for `git diff`. A symlinked file is diffed by the content it points to, the same content `status`, `pull` and `apply` see. Hints that need a file name use a `<path>` placeholder; replace it with a path from `status`.
 
+To sync only some of the files, add `-i` (`--interactive`) to `local pull`, `local apply`, `master promote` or `master apply`. The files the command would write are listed in [fzf](https://github.com/junegunn/fzf), with a preview of each file's diff from what the destination holds now to what is about to be written (`+` lines are what gets written). Pick files with `Space` (with none picked, `Enter` takes the highlighted file), press `Enter`, and answer `y` to the usual confirmation; `-i` goes straight to that prompt, so `--execute` is not needed. `master promote -i` offers env-only files as well as conflicts. fzf is needed only for `-i`.
+
 ### 🩺 `health` — the one-line status check
 
 ```bash
@@ -112,7 +114,9 @@ ruby nukegara.rb local diff             # every differing file, in your pager
 ruby nukegara.rb local diff zshrc       # ...or just one file
 ruby nukegara.rb local pull             # filesystem -> worktree (dry-run)
 ruby nukegara.rb local pull --execute   # filesystem -> worktree (for real)
+ruby nukegara.rb local pull -i          # pick files in fzf, then confirm and sync just those
 ruby nukegara.rb local apply --execute  # worktree -> filesystem (deploy to a new machine)
+ruby nukegara.rb local apply -i         # pick files in fzf, then confirm and apply just those
 ```
 
 ### 🌐 `master` — the shared layer ⇄ the env worktree
@@ -121,9 +125,11 @@ ruby nukegara.rb local apply --execute  # worktree -> filesystem (deploy to a ne
 ruby nukegara.rb master status                     # env-only files, then conflicting files (red)
 ruby nukegara.rb master diff                       # every conflict, in your pager (or pass one path)
 ruby nukegara.rb master apply --execute            # push master's version into the env
+ruby nukegara.rb master apply -i                   # ...for the files you pick in fzf
 ruby nukegara.rb master promote                    # promote all conflicting env files (dry-run)
 ruby nukegara.rb master promote --execute          # ...for real
 ruby nukegara.rb master promote config/nvim/init.lua --execute   # promote one specific file
+ruby nukegara.rb master promote -i                 # pick conflicts or env-only files in fzf to promote
 ```
 
 ### 🔧 `git` — worktree git, without the `cd`
