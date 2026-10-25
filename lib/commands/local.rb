@@ -75,8 +75,7 @@ class Local < Thor
     colorize("[#{entry[:kind].to_s.tr('_', '-')}] #{entry[:nukegara_rel]}", :yellow)
   end
 
-  # pull copies only files that exist locally and apply only files that exist
-  # in the worktree, so a one-sided diff leaves the other direction a no-op.
+  # A one-sided file is a no-op for the direction that would delete it.
   def sync_choices(entries)
     kinds = entries.map { it[:kind] }
     choices = {}
@@ -85,8 +84,6 @@ class Local < Thor
     choices
   end
 
-  # pull copies local -> worktree, apply copies worktree -> local. Both walk
-  # the same target list and differ only in which side is the source.
   def sync(direction:)
     host_config = @config.current_host_config
     @config.check_worktree_exists!(host_config)
@@ -121,7 +118,6 @@ class Local < Thor
 
     apply_changes(changes)
     puts "local #{direction} completed."
-    # apply only writes to local, so the worktree has nothing new to commit.
     print_next_steps("stage the worktree changes" => "nukegara git stage") if direction == :pull
   end
 end

@@ -13,8 +13,6 @@ require "pathname"
 require "shellwords"
 require "tmpdir"
 
-# Use the script's directory as the root so that targets.yaml and worktree
-# paths resolve consistently regardless of the current working directory.
 ROOT_DIR = Pathname(__dir__).freeze
 
 require_relative "lib/cli"

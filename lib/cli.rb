@@ -46,8 +46,8 @@ class CLI < Thor
     env_remote_summary += " (fetch failed)" unless fetched
     puts "health: #{format_stage('local<->env', local_env)} / #{env_master_summary} / #{env_remote_summary}"
 
-    # env<->remote comes first: syncing local against an env that is behind
-    # its remote would build on stale files from before another machine's push.
+    # env<->remote first, since syncing local against an env behind its remote
+    # would build on stale files.
     next_steps = if env_remote[:uncommitted].positive?
                    { "review env<->remote" => "nukegara git status" }
                  else
@@ -60,23 +60,17 @@ class CLI < Thor
 
   private
 
-  # Counts how local and the env worktree diverge: files present on only one
-  # side (missing) and files present on both but differing in content.
   def local_env_counts(host_config)
     LocalEnvDiff.compute(@config, host_config)
                 .map { it[:kind] == :differ ? :differ : :missing }
                 .tally
   end
 
-  # Counts conflicts between master and the env worktree (files in both whose
-  # content differs). env-only files are healthy (just not promoted yet) and
-  # master-only files are not conflicts, so neither is counted.
+  # env-only and master-only files are healthy, so only conflicts count.
   def env_master_counts(host_config)
     { conflict: differing_conflicts(EffectiveConfig.compute(@config, host_config)).size }
   end
 
-  # Counts how the env worktree diverges from its remote: uncommitted files,
-  # commits not yet pushed (ahead) and commits not yet pulled (behind).
   def env_remote_counts(worktree)
     behind, ahead = upstream_divergence(worktree)
     { uncommitted: worktree_changes(worktree).size, ahead: ahead, behind: behind }

@@ -2,9 +2,6 @@ require_relative "../nukegara_config"
 require_relative "../worktree_git"
 require_relative "../nukegara_helpers"
 
-# Wraps the git operations on the env worktree that the workflow would
-# otherwise run by hand (cd worktree; git add/commit/push/pull). The branch and
-# worktree path both come from targets.yaml, so no arguments are needed.
 class Git < Thor
   include NukegaraHelpers
   include WorktreeGit
@@ -23,9 +20,7 @@ class Git < Thor
     run_git(host_config, "status", "-sb")
 
     changes = worktree_changes(worktree)
-    # A non-blank Y in "XY PATH" (the worktree column, "?" for untracked files)
-    # means something is still unstaged; unmerged paths also land here, and
-    # staging is how git marks them resolved.
+    # line[1] is the worktree column of "XY PATH" ("?" if untracked).
     if changes.any? { |line| line[1] != " " }
       print_next_steps("stage the worktree changes" => "nukegara git stage")
     elsif changes.any?
@@ -48,8 +43,7 @@ class Git < Thor
     print_next_steps("commit the staged changes" => "nukegara git commit")
   end
 
-  # Default commit message used when -m is omitted, matching the manual
-  # workflow this helper replaces.
+  # Matches the message of the manual workflow this command replaced.
   DEFAULT_COMMIT_MESSAGE = "update dotfiles".freeze
 
   desc "commit", "Commit the staged changes in the env worktree"
@@ -91,9 +85,7 @@ class Git < Thor
     if worktree.directory?
       puts "Worktree already exists: #{worktree}"
     else
-      # A worktree can only be added for a branch git already knows about. Create
-      # and publish the branch first when neither the local nor the remote ref
-      # exists yet, so a brand-new environment works from a single command.
+      # git worktree add needs a branch git already knows.
       create_branch_if_missing(branch)
 
       git_in_root("worktree", "add", branch, branch)
@@ -105,8 +97,6 @@ class Git < Thor
 
   private
 
-  # Runs git inside the env worktree. Returns captured stdout when capture is
-  # true; otherwise streams output and aborts on a non-zero exit.
   def run_git(host_config, *git_args, capture: false)
     worktree = @config.worktree_dir(host_config)
 
@@ -118,16 +108,12 @@ class Git < Thor
     system("git", "-C", worktree.to_s, *git_args) || abort("git #{git_args.first} failed.")
   end
 
-  # True when the env worktree has staged changes. `git diff --cached --quiet`
-  # exits 0 when nothing is staged and 1 when there is, so a successful exit
-  # means the index is clean.
+  # --quiet exits 1 when something is staged.
   def anything_staged?(host_config)
     worktree = @config.worktree_dir(host_config)
     !system("git", "-C", worktree.to_s, "diff", "--cached", "--quiet")
   end
 
-  # Runs git from the repository root (for operations that act on the repo
-  # rather than a worktree, such as creating worktrees and branches).
   def git_in_root(*git_args)
     system("git", "-C", ROOT_DIR.to_s, *git_args) || abort("git #{git_args.first} failed.")
   end
@@ -139,7 +125,6 @@ class Git < Thor
     git_in_root("push", "-u", "origin", branch)
   end
 
-  # True when the branch exists locally or on the origin remote.
   def branch_known?(branch)
     local, = Open3.capture2("git", "-C", ROOT_DIR.to_s,
                             "rev-parse", "--verify", "--quiet", branch)

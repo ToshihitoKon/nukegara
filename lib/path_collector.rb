@@ -1,10 +1,3 @@
-# Collects the files under a base path into a Hash keyed by path relative to
-# the base. A single regular file is keyed as ".". The single source of truth
-# for how files are enumerated, so every command sees the same set.
-#
-# exclude is an optional list of glob patterns (File.fnmatch syntax, matched
-# against the base-relative path). Matching files are dropped from the result,
-# so every command consistently skips them (e.g. log files under config dirs).
 module PathCollector
   module_function
 
@@ -25,17 +18,13 @@ module PathCollector
     end
   end
 
-  # A path is excluded when it matches any glob pattern. FNM_PATHNAME keeps
-  # `*` from crossing `/`, so `*.log` matches only top-level files while
-  # `**/*.log` reaches into subdirectories.
+  # FNM_PATHNAME keeps `*` from crossing `/`; `**/*.log` reaches subdirectories.
   def excluded?(rel, exclude)
     return false if exclude.nil? || exclude.empty?
 
     exclude.any? { |pattern| File.fnmatch?(pattern, rel, File::FNM_PATHNAME | File::FNM_EXTGLOB) }
   end
 
-  # Resolves a relative key from collect_files back to a real path under base.
-  # A "." key means base itself was a single file, so base is returned as-is.
   def resolve(base, rel)
     rel == "." ? Pathname(base) : Pathname(base).join(rel)
   end

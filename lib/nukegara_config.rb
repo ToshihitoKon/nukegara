@@ -40,8 +40,7 @@ class NukegaraConfig
 
   private
 
-  # Resolve a relative master_path against the root. An absolute master_path
-  # is used as-is (Pathname#join keeps the absolute argument).
+  # Pathname#join keeps an absolute master_path as-is.
   def master_dir_path
     ROOT_DIR.join(@master_path)
   end

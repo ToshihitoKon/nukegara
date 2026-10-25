@@ -47,9 +47,8 @@ class Master < Thor
 
     show_diffs("master", "env", shown.map { [it[:nukegara_rel], it[:master_path], it[:env_path]] })
 
-    # When a path was given, only that file has been reviewed, so promote is
-    # narrowed to it rather than overwriting conflicts never looked at. apply
-    # takes no path, so it still covers every conflict.
+    # Narrowed to the given path, so promote does not overwrite conflicts never
+    # reviewed. apply takes no path.
     promote_command = ["nukegara master promote", nukegara_rel&.shellescape].compact.join(" ")
     print_next_choices(
       "promote env -> master" => promote_command,
@@ -144,7 +143,6 @@ class Master < Thor
     colorize("[env-only] #{entry[:nukegara_rel]}", :cyan)
   end
 
-  # Promotes every conflicting file (env content wins) to master.
   def promote_all(all_entries)
     changes = all_entries.select { |e| e[:source] == :conflict }.filter_map do |e|
       next if FileUtils.cmp(e[:master_path].to_s, e[:env_path].to_s)
@@ -159,7 +157,6 @@ class Master < Thor
     puts "master promote completed."
   end
 
-  # Promotes a single file (conflict or env-only) to master.
   def promote_one(all_entries, nukegara_rel)
     entry = all_entries.find do |e|
       e[:nukegara_rel] == nukegara_rel && [:conflict, :env].include?(e[:source])
@@ -184,8 +181,7 @@ class Master < Thor
     puts "master promote completed."
   end
 
-  # Offers env-only files as well as conflicts, the same files promote_one
-  # accepts, rather than only the conflicts promote_all covers.
+  # Offers env-only files too, as promote_one does, not only conflicts.
   def promote_picked(all_entries)
     changes = all_entries.filter_map do |e|
       case e[:source]

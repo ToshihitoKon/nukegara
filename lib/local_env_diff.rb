@@ -1,9 +1,5 @@
 require_relative "path_collector"
 
-# Compares the local filesystem with the env worktree for every target file
-# and lists the files that differ, classifying each as :local_missing,
-# :worktree_missing or :differ. Shared by `local status`, `local diff` and
-# `health` so all of them report the same set of files.
 class LocalEnvDiff
   include PathCollector
 

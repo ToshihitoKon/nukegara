@@ -1,8 +1,5 @@
 require_relative "path_collector"
 
-# Cross-references master/ and the env worktree for every target file,
-# classifying each as :conflict (in both), :env (env-only), or :master
-# (master-only). This classification drives every master command and health.
 class EffectiveConfig
   include PathCollector
 
