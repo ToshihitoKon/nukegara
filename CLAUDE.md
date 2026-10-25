@@ -47,13 +47,30 @@
 - デフォルトはドライラン（変更内容を表示するだけ）
 - `--execute` を付けると確認プロンプトの後に実際にファイルをコピーする
 
+### 次の操作の案内
+- 続けて実行すべき操作があるとき、各コマンドは最後に `Next:` ブロックで次に実行するコマンドを表示する
+  - 表示は `NukegaraHelpers#print_next_steps`（順に実行する案内）と `#print_next_choices`（どちらか一方を選ぶ案内）に集約している
+  - 案内するコマンドは PATH 上の `nukegara`（`nukegara.rb` へのシンボリックリンク）で書く
+- 説明の行とコマンドの行を分け、コマンドは 1 行に 1 つだけ出す
+  - コマンドの行をそのままコピペして実行できるようにする
+  - 行末に `# 説明` を付けると、`interactive_comments` が無効な zsh では引数として渡ってしまう
+- 同期の向きのように、どちらか一方だけを選ぶ案内は見出しを `Next (pick one):` にする
+  - 見出しが `Next:` の案内は、上から順に実行するものとして並べる
+- `--execute` を取るコマンドは、ドライランの後の案内でだけ `--execute` 付きで出し、それ以外の案内ではフラグなしで出す
+- 次に必要な操作がないときは `Next:` ブロックを出さない
+  - 例: 差分がないとき、`local apply --execute`・`master promote --execute`・`git push` の後
+- `health` は `git fetch` してから env worktree の未コミット・ahead・behind も数え、案内では env <-> remote を最初に出す
+  - リモートより古い env のまま local と同期すると、別マシンからの push と食い違う
+  - fetch に失敗したときはサマリに `(fetch failed)` を付け、手元のリモート追跡ブランチで数える
+
 ## よく使うコマンド
 
 ```bash
 # ホストの MD5 ハッシュを取得する
 ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`uname -n\`.strip)"
 
-# 3ステージ（local <-> env <-> master）の差分有無を1行サマリで確認
+# fetch してから local <-> env <-> master と env <-> remote の差分有無を1行サマリで確認する
+# （差分があれば次に実行するコマンドも表示する）
 ruby nukegara.rb health
 
 # ローカルと worktree の差分確認
@@ -96,6 +113,9 @@ ruby nukegara.rb git commit -m "fix tmux config"
 
 # env worktree のブランチを push する
 ruby nukegara.rb git push
+
+# env worktree のブランチを pull する
+ruby nukegara.rb git pull
 
 # このホストの設定ブランチの worktree を作成する（必要ならブランチ作成・push も行う）
 ruby nukegara.rb git setup
@@ -156,7 +176,7 @@ git worktree remove environments/<environment-branch>
    ```bash
    # 同じ環境設定を持つマシン上で実行する
    ruby nukegara.rb git setup
-   git -C environments/macbook/2025 pull
+   ruby nukegara.rb git pull
    ruby nukegara.rb local apply --execute
    ```
 

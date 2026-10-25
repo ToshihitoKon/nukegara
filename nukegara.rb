@@ -10,6 +10,7 @@ end
 require "digest/md5"
 require "open3"
 require "pathname"
+require "shellwords"
 
 # Use the script's directory as the root so that targets.yaml and worktree
 # paths resolve consistently regardless of the current working directory.
@@ -112,6 +113,38 @@ module PathCollector
   end
 end
 
+# Read-only git queries on the env worktree, shared by `git status` and
+# `health` so both judge the worktree the same way.
+module WorktreeGit
+  module_function
+
+  # Porcelain v1 lines ("XY PATH"), one per changed or untracked file.
+  def worktree_changes(worktree)
+    out, = Open3.capture2("git", "-C", worktree.to_s, "status", "--porcelain")
+    out.lines
+  end
+
+  # Returns [behind, ahead] commit counts against the upstream's
+  # remote-tracking ref, matching the [ahead N, behind M] of `status -sb`.
+  # A branch without an upstream makes rev-list fail; that counts as [0, 0]
+  # and its stderr is dropped so the caller's output stays clean.
+  def upstream_divergence(worktree)
+    out, exit_status = Open3.capture2("git", "-C", worktree.to_s,
+                                      "rev-list", "--left-right", "--count", "@{upstream}...HEAD",
+                                      err: File::NULL)
+    return [0, 0] unless exit_status.success?
+
+    out.split.map(&:to_i)
+  end
+
+  # Updates the remote-tracking ref so upstream_divergence sees pushes made
+  # from other machines. stderr is dropped because the caller reports a
+  # failure (e.g. offline) itself.
+  def fetch_upstream(worktree)
+    system("git", "-C", worktree.to_s, "fetch", "--quiet", err: File::NULL)
+  end
+end
+
 # Cross-references master/ and the env worktree for every target file,
 # classifying each as :conflict (in both), :env (env-only), or :master
 # (master-only). This classification drives the diff/promote/apply commands.
@@ -208,7 +241,7 @@ module NukegaraHelpers
     exit 1
   end
 
-  def confirm_and_execute(change_labels, dry_run)
+  def confirm_and_execute(change_labels, dry_run, execute_command:)
     if change_labels.empty?
       puts "Nothing to do."
       return false
@@ -217,11 +250,48 @@ module NukegaraHelpers
     change_labels.each { |l| puts "  #{l}" }
 
     if dry_run
-      puts "\n#{change_labels.size} file(s) would be changed. Run with --execute to apply."
+      puts "\n#{change_labels.size} file(s) would be changed."
+      print_next_steps("execute these changes" => execute_command)
       return false
     end
 
     yes?("\nProceed with #{change_labels.size} change(s)? [y/N]")
+  end
+
+  def print_next_steps(steps)
+    print_steps_under("Next:", steps)
+  end
+
+  # For alternatives such as opposite sync directions, where only one of the
+  # steps should be run. A separate method rather than a keyword option, since
+  # a keyword would swallow the braceless "description" => "command" hashes.
+  def print_next_choices(steps)
+    print_steps_under(steps.size > 1 ? "Next (pick one):" : "Next:", steps)
+  end
+
+  # Prints each command on a line of its own under its description. A trailing
+  # "# description" is avoided because zsh without interactive_comments passes
+  # it through as arguments when the line is pasted.
+  def print_steps_under(header, steps)
+    return if steps.empty?
+
+    puts "\n#{header}"
+    steps.each do |description, command|
+      puts "  #{description}:"
+      puts "    #{command}"
+    end
+  end
+
+  # The step that brings a clean env worktree level with its remote. Behind
+  # wins over ahead: a diverged branch must pull before its push is accepted.
+  def remote_sync_step(behind, ahead)
+    if behind.positive?
+      { "pull the branch" => "nukegara git pull" }
+    elsif ahead.positive?
+      { "push the branch" => "nukegara git push" }
+    else
+      {}
+    end
   end
 
   # Copies each change's :src to its :dest, creating parent directories.
@@ -260,7 +330,7 @@ class Local < Thor
     @config.check_worktree_exists!(host_config)
 
     worktree_dir = @config.worktree_dir(host_config)
-    any_diff = false
+    diff_kinds = []
 
     host_config[:targets].each do |entry|
       local_base    = File.expand_path(entry[:target])
@@ -277,17 +347,27 @@ class Local < Thor
 
         if local_path.nil?
           puts colorize("[local-missing] #{label}", :yellow)
-          any_diff = true
+          diff_kinds << :local_missing
         elsif env_path.nil?
           puts colorize("[worktree-missing] #{label}", :yellow)
-          any_diff = true
+          diff_kinds << :worktree_missing
         elsif show_diff(env_path, local_path, label: label, left_label: "worktree", right_label: "local")
-          any_diff = true
+          diff_kinds << :differ
         end
       end
     end
 
-    puts "No differences found." unless any_diff
+    if diff_kinds.empty?
+      puts "No differences found."
+      return
+    end
+
+    # pull copies only files that exist locally and apply only files that exist
+    # in the worktree, so a one-sided diff leaves the other direction a no-op.
+    next_steps = {}
+    next_steps["sync local -> env"] = "nukegara local pull" if diff_kinds.intersect?([:worktree_missing, :differ])
+    next_steps["sync env -> local"] = "nukegara local apply" if diff_kinds.intersect?([:local_missing, :differ])
+    print_next_choices(next_steps)
   end
 
   private
@@ -317,10 +397,13 @@ class Local < Thor
       end
     end
 
-    return unless confirm_and_execute(changes.map { "#{it[:src]} -> #{it[:dest]}" }, dry_run)
+    return unless confirm_and_execute(changes.map { "#{it[:src]} -> #{it[:dest]}" }, dry_run,
+                                      execute_command: "nukegara local #{direction} --execute")
 
     apply_changes(changes)
     puts "local #{direction} completed."
+    # apply only writes to local, so the worktree has nothing new to commit.
+    print_next_steps("stage the worktree changes" => "nukegara git stage") if direction == :pull
   end
 end
 
@@ -357,7 +440,14 @@ class Master < Thor
       end
     end
 
-    puts "No conflicts found." unless any_diff
+    if any_diff
+      print_next_choices(
+        "promote env -> master" => "nukegara master promote",
+        "apply master -> env" => "nukegara master apply"
+      )
+    else
+      puts "No conflicts found."
+    end
   end
 
   desc "promote [NUKEGARA_REL]",
@@ -408,10 +498,15 @@ class Master < Thor
       end
     end
 
-    return unless confirm_and_execute(changes.map { |change| change[:label] }, dry_run)
+    return unless confirm_and_execute(changes.map { |change| change[:label] }, dry_run,
+                                      execute_command: "nukegara master apply --execute")
 
     apply_changes(changes)
     puts "master apply completed."
+    print_next_steps(
+      "sync env -> local" => "nukegara local apply",
+      "stage the worktree changes" => "nukegara git stage"
+    )
   end
 
   private
@@ -426,7 +521,8 @@ class Master < Thor
       { src: e[:env_path], dest: e[:master_path], label: colorize("[conflict] #{e[:nukegara_rel]}", :red) }
     end
 
-    return unless confirm_and_execute(changes.map { |change| change[:label] }, dry_run)
+    return unless confirm_and_execute(changes.map { |change| change[:label] }, dry_run,
+                                      execute_command: "nukegara master promote --execute")
 
     apply_changes(changes)
     puts "master promote completed."
@@ -452,7 +548,8 @@ class Master < Thor
                 label: nukegara_rel, left_label: "master", right_label: "env")
     end
 
-    return unless confirm_and_execute(["#{src} -> #{dest}"], dry_run)
+    return unless confirm_and_execute(["#{src} -> #{dest}"], dry_run,
+                                      execute_command: "nukegara master promote #{nukegara_rel.shellescape} --execute")
 
     apply_changes([{ src: src, dest: dest }])
     puts "master promote completed."
@@ -460,10 +557,11 @@ class Master < Thor
 end
 
 # Wraps the git operations on the env worktree that the workflow would
-# otherwise run by hand (cd worktree; git add/commit/push). The branch and
+# otherwise run by hand (cd worktree; git add/commit/push/pull). The branch and
 # worktree path both come from targets.yaml, so no arguments are needed.
 class Git < Thor
   include NukegaraHelpers
+  include WorktreeGit
 
   def initialize(*args)
     super
@@ -474,11 +572,21 @@ class Git < Thor
   def status
     host_config = @config.current_host_config
     @config.check_worktree_exists!(host_config)
+    worktree = @config.worktree_dir(host_config)
 
     run_git(host_config, "status", "-sb")
 
-    dirty = run_git(host_config, "status", "--porcelain", capture: true)
-    puts "\nNext: `nukegara git stage` then `nukegara git commit` to record these changes." unless dirty.strip.empty?
+    changes = worktree_changes(worktree)
+    # A non-blank Y in "XY PATH" (the worktree column, "?" for untracked files)
+    # means something is still unstaged; unmerged paths also land here, and
+    # staging is how git marks them resolved.
+    if changes.any? { |line| line[1] != " " }
+      print_next_steps("stage the worktree changes" => "nukegara git stage")
+    elsif changes.any?
+      print_next_steps("commit the staged changes" => "nukegara git commit")
+    else
+      print_next_steps(remote_sync_step(*upstream_divergence(worktree)))
+    end
   end
 
   desc "stage", "Stage all changes in the env worktree (git add -A)"
@@ -491,7 +599,7 @@ class Git < Thor
 
     run_git(host_config, "add", "-A")
     run_git(host_config, "status", "-sb")
-    puts "\nNext: `nukegara git commit` to commit the staged changes."
+    print_next_steps("commit the staged changes" => "nukegara git commit")
   end
 
   # Default commit message used when -m is omitted, matching the manual
@@ -508,7 +616,7 @@ class Git < Thor
 
     message = options[:message] || DEFAULT_COMMIT_MESSAGE
     run_git(host_config, "commit", "-m", message)
-    puts "\nNext: `nukegara git push` to push the branch to its remote."
+    print_next_steps("push the branch" => "nukegara git push")
   end
 
   desc "push", "Push the env worktree branch to its remote"
@@ -519,6 +627,15 @@ class Git < Thor
     run_git(host_config, "push")
   end
 
+  desc "pull", "Pull the env worktree branch from its remote"
+  def pull
+    host_config = @config.current_host_config
+    @config.check_worktree_exists!(host_config)
+
+    run_git(host_config, "pull")
+    print_next_steps("check the sync state" => "nukegara health")
+  end
+
   desc "setup", "Create the env worktree for this host's configured branch"
   def setup
     host_config = @config.current_host_config
@@ -527,16 +644,17 @@ class Git < Thor
 
     if worktree.directory?
       puts "Worktree already exists: #{worktree}"
-      return
+    else
+      # A worktree can only be added for a branch git already knows about. Create
+      # and publish the branch first when neither the local nor the remote ref
+      # exists yet, so a brand-new environment works from a single command.
+      create_branch_if_missing(branch)
+
+      git_in_root("worktree", "add", branch, branch)
+      puts "Worktree created: #{worktree}"
     end
 
-    # A worktree can only be added for a branch git already knows about. Create
-    # and publish the branch first when neither the local nor the remote ref
-    # exists yet, so a brand-new environment works from a single command.
-    create_branch_if_missing(branch)
-
-    git_in_root("worktree", "add", branch, branch)
-    puts "Worktree created: #{worktree}"
+    print_next_steps("check the sync state" => "nukegara health")
   end
 
   private
@@ -590,6 +708,7 @@ end
 class CLI < Thor
   include NukegaraHelpers
   include PathCollector
+  include WorktreeGit
 
   def initialize(*args)
     super
@@ -602,22 +721,40 @@ class CLI < Thor
   desc "master SUBCOMMAND", "Manage master <-> env worktrees"
   subcommand "master", Master
 
-  desc "git SUBCOMMAND", "Run git operations on the env worktree (status/stage/commit/push/setup)"
+  desc "git SUBCOMMAND", "Run git operations on the env worktree (status/stage/commit/push/pull/setup)"
   subcommand "git", Git
 
-  desc "health", "Show a one-line diff summary across stages (local <-> env <-> master)"
+  desc "health",
+       "Show a one-line diff summary across stages (local <-> env <-> master, env <-> remote) and what to run next"
   def health
     host_config = @config.current_host_config
     @config.check_worktree_exists!(host_config)
 
-    local_env  = format_stage("local<->env", local_env_counts(host_config))
-    env_master = if @config.master_enabled?
-                   format_stage("env<->master", env_master_counts(host_config))
-                 else
-                   "env<->master skipped"
-                 end
+    local_env  = local_env_counts(host_config)
+    env_master = env_master_counts(host_config) if @config.master_enabled?
+    worktree   = @config.worktree_dir(host_config)
+    fetched    = fetch_upstream(worktree)
+    env_remote = env_remote_counts(worktree)
 
-    puts "health: #{local_env} / #{env_master}"
+    env_master_summary = if env_master
+                           format_stage("env<->master", env_master)
+                         else
+                           "env<->master skipped"
+                         end
+    env_remote_summary = format_stage("env<->remote", env_remote)
+    env_remote_summary += " (fetch failed)" unless fetched
+    puts "health: #{format_stage('local<->env', local_env)} / #{env_master_summary} / #{env_remote_summary}"
+
+    # env<->remote comes first: syncing local against an env that is behind
+    # its remote would build on stale files from before another machine's push.
+    next_steps = if env_remote[:uncommitted].positive?
+                   { "review env<->remote" => "nukegara git status" }
+                 else
+                   remote_sync_step(env_remote[:behind], env_remote[:ahead])
+                 end
+    next_steps["review local<->env"] = "nukegara local diff" if local_env.values.sum.positive?
+    next_steps["review env<->master"] = "nukegara master diff" if env_master && env_master.values.sum.positive?
+    print_next_steps(next_steps)
   end
 
   private
@@ -660,6 +797,13 @@ class CLI < Thor
     end
 
     counts
+  end
+
+  # Counts how the env worktree diverges from its remote: uncommitted files,
+  # commits not yet pushed (ahead) and commits not yet pulled (behind).
+  def env_remote_counts(worktree)
+    behind, ahead = upstream_divergence(worktree)
+    { uncommitted: worktree_changes(worktree).size, ahead: ahead, behind: behind }
   end
 
   def format_stage(label, counts)

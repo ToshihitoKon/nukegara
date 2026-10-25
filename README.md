@@ -94,10 +94,12 @@ hosts:
 
 `nukegara` groups its work into four subcommand families. Run `ruby nukegara.rb tree` any time to see the full map.
 
+When there is a follow-up step, a command ends with a `Next:` block that lists what to run next, one command per line so you can paste it straight into your shell. Commands that take `--execute` are suggested with it only after a dry-run, and without it everywhere else. The hints call the bare `nukegara` command, so put a symlink to `nukegara.rb` on your `PATH`.
+
 ### 🩺 `health` — the one-line status check
 
 ```bash
-ruby nukegara.rb health    # compact summary of diffs across local <-> env <-> master
+ruby nukegara.rb health    # fetch, then summarize local <-> env <-> master and env <-> remote, plus what to run next if anything differs
 ```
 
 ### 💻 `local` — your filesystem ⇄ the env worktree
@@ -126,6 +128,7 @@ ruby nukegara.rb git status               # git status of the env worktree
 ruby nukegara.rb git stage                # git add -A
 ruby nukegara.rb git commit -m "..."      # commit staged changes (message optional)
 ruby nukegara.rb git push                 # push the branch
+ruby nukegara.rb git pull                 # pull the branch
 ruby nukegara.rb git setup                # create the worktree (and branch) for this host
 ```
 
@@ -143,7 +146,7 @@ ruby nukegara.rb git push
 
 # On another machine with the same environment branch:
 ruby nukegara.rb git setup
-git -C environments/macbook/2025 pull
+ruby nukegara.rb git pull
 ruby nukegara.rb local apply --execute    # roll the config onto disk
 ```
 
