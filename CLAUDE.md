@@ -33,7 +33,7 @@
 - `targets.yaml` の `master.path` で設定する共通設定ディレクトリ
 - 複数の環境に共通して適用したいファイルを置く場所
 - env ブランチと master の同名ファイルは `conflict` として検出される
-- `master diff` で差分確認、`master apply` で master の内容を env に反映できる
+- `master status` で競合ファイルと env だけにあるファイルの一覧、`master diff` で競合ファイルの中身の差分を確認でき、`master apply` で master の内容を env に反映できる
 - `master promote` で env の内容を master に昇格できる（引数なし: 全競合ファイル、パス指定: 特定ファイル）
 
 ### 環境ブランチでの作業
@@ -47,6 +47,22 @@
 - デフォルトはドライラン（変更内容を表示するだけ）
 - `--execute` を付けると確認プロンプトの後に実際にファイルをコピーする
 
+### status と diff
+- `status` はファイルごとに `[differ]` や `[conflict]` などの種類とパスだけを 1 行で出し、中身は出さない
+  - `local status`: local と env で中身が違うファイルと、片側にしかないファイル
+  - `master status`: master と env で中身が違う競合ファイルと、env だけにあるファイル
+- `local diff` / `master diff` は差分のあるファイルの diff を `git diff --no-index` で出す
+  - パスを渡すとそのファイルだけ、渡さなければ全ファイル分を出す
+    - パスは `status` に出る形（env worktree からの相対パス。例: `config/nvim/init.lua`）で渡す
+    - `master diff` が受け付けるのは `[conflict]` のパスだけ
+  - 比べるファイルを一時ディレクトリの `worktree/` と `local/`（master は `master/` と `env/`）にコピーし、2 つのディレクトリを git で 1 回だけ比べる
+    - git をファイルごとに実行すると、ファイルごとに pager が開くため
+    - pager や色付けは、ユーザーの git 設定（global）どおりに効く
+  - 比べるのは中身だけで、ファイルの権限の違いは diff に出さない（`status` も中身だけで比べる）
+  - ファイルへのシンボリックリンクは、リンク先の中身で diff を出す
+    - コピーにはリンク先の中身が入るため、`status` や pull/apply と同じ中身で比べられる
+    - リンク切れなど読めないファイルは、無いものとして diff を出す
+
 ### 次の操作の案内
 - 続けて実行すべき操作があるとき、各コマンドは最後に `Next:` ブロックで次に実行するコマンドを表示する
   - 表示は `NukegaraHelpers#print_next_steps`（順に実行する案内）と `#print_next_choices`（どちらか一方を選ぶ案内）に集約している
@@ -54,6 +70,8 @@
 - 説明の行とコマンドの行を分け、コマンドは 1 行に 1 つだけ出す
   - コマンドの行をそのままコピペして実行できるようにする
   - 行末に `# 説明` を付けると、`interactive_comments` が無効な zsh では引数として渡ってしまう
+  - 例外として、`status` の後の `diff` の案内はパスを `<path>` のプレースホルダーで書く
+    - `status` に出たパスに置き換えて実行する
 - 同期の向きのように、どちらか一方だけを選ぶ案内は見出しを `Next (pick one):` にする
   - 見出しが `Next:` の案内は、上から順に実行するものとして並べる
 - `--execute` を取るコマンドは、ドライランの後の案内でだけ `--execute` 付きで出し、それ以外の案内ではフラグなしで出す
@@ -62,6 +80,10 @@
 - `health` は `git fetch` してから env worktree の未コミット・ahead・behind も数え、案内では env <-> remote を最初に出す
   - リモートより古い env のまま local と同期すると、別マシンからの push と食い違う
   - fetch に失敗したときはサマリに `(fetch failed)` を付け、手元のリモート追跡ブランチで数える
+- 差分の案内は `health` → `status` → `diff` の順につなぎ、同期（pull/apply、promote/apply）は `diff` の後に案内する
+  - `master diff` にパスを渡したときは、promote の案内もそのパスに絞る
+    - 1 ファイルだけ見た直後に全競合ファイルの promote を案内すると、見ていないファイルまで env の内容で上書きしかねないため
+    - パスを渡さないときは全ファイル分の diff を出すので、promote の案内は絞らない
 
 ## よく使うコマンド
 
@@ -73,8 +95,12 @@ ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`uname -n\`.strip)"
 # （差分があれば次に実行するコマンドも表示する）
 ruby nukegara.rb health
 
-# ローカルと worktree の差分確認
+# ローカルと worktree で差分のあるファイルを一覧する
+ruby nukegara.rb local status
+
+# 差分のある全ファイルの diff を pager で見る（パスを渡すとそのファイルだけ）
 ruby nukegara.rb local diff
+ruby nukegara.rb local diff config/nvim/init.lua
 
 # ローカル → worktree に同期する（ドライラン）
 ruby nukegara.rb local pull
@@ -85,8 +111,12 @@ ruby nukegara.rb local pull --execute
 # worktree → ローカルに反映する（実行）
 ruby nukegara.rb local apply --execute
 
-# master と env の差分確認
+# master と env で競合しているファイルと env だけにあるファイルを一覧する
+ruby nukegara.rb master status
+
+# 競合している全ファイルの diff を pager で見る（パスを渡すとそのファイルだけ）
 ruby nukegara.rb master diff
+ruby nukegara.rb master diff config/nvim/init.lua
 
 # master の内容を env に反映する（実行）
 ruby nukegara.rb master apply --execute
@@ -150,7 +180,10 @@ git worktree remove environments/<environment-branch>
 
 2. **ローカルの変更を worktree に同期する**:
    ```bash
-   # 差分確認
+   # 差分のあるファイルを確認する
+   ruby nukegara.rb local status
+
+   # 中身の差分を確認する
    ruby nukegara.rb local diff
 
    # 同期実行
@@ -213,7 +246,7 @@ hosts:
   - `exclude`: 同期対象から除外する glob パターンのリスト（省略可）
     - `File.fnmatch` の構文で、各ファイルの base からの相対パスにマッチさせる
     - log ファイルなど worktree に含めたくないファイルを除外するのに使う
-    - 全コマンド（diff/pull/apply/promote）に一貫して効く
+    - 全コマンド（status/diff/pull/apply/promote）に一貫して効く
     - `*` は `/` をまたがない。サブディレクトリ以下も含めるには `**/*.log` のように書く
     - 例: `"**/*.log"`（全階層の `.log`）、`"*.tmp"`（直下のみの `.tmp`）
 
