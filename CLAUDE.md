@@ -34,7 +34,7 @@
 - 複数の環境に共通して適用したいファイルを置く場所
 - env ブランチと master の同名ファイルは `conflict` として検出される
 - `master status` で競合ファイルと env だけにあるファイルの一覧、`master diff` で競合ファイルの中身の差分を確認でき、`master apply` で master の内容を env に反映できる
-- `master promote` で env の内容を master に昇格できる（引数なし: 全競合ファイル、パス指定: 特定ファイル）
+- `master promote` で env の内容を master に昇格できる（引数なし: 全競合ファイル、パス指定: 特定ファイル、`-i`: fzf で選んだファイル）
 
 ### 環境ブランチでの作業
 - 各環境ブランチは独立していて、独自のドットファイルを持つ
@@ -46,6 +46,42 @@
 ### ドライランと --execute フラグ
 - デフォルトはドライラン（変更内容を表示するだけ）
 - `--execute` を付けると確認プロンプトの後に実際にファイルをコピーする
+- `-i` を付けたときは、`--execute` なしで確認プロンプトまで進む（次節）
+
+### -i でファイルを選んで同期する
+- `local pull` / `local apply` / `master promote` / `master apply` に `-i`（`--interactive`）を付けると、そのコマンドで書き換わるファイルを fzf で一覧し、選んだファイルだけを同期する
+  - space で選んで Enter で確定すると、`--execute` と同じ確認（対象一覧と `Proceed with N change(s)? [y/N]`）に進み、y で実行する
+    - 一覧で選ぶ操作と y/N の確認をドライランの代わりにするため、`--execute` は要らない
+  - 1 つも選ばずに Enter を押すと、カーソルのある 1 ファイルが対象になる（fzf の標準の挙動）
+  - Esc / ctrl-c で中断したときや、1 つも選ばず絞り込みで 1 件も残らないまま Enter を押したときは、何も書き換えない
+    - 選んだファイルは、絞り込みで一覧から消えても選んだまま残る
+  - 確認に出す一覧は、選んだ順ではなく fzf に渡した元の一覧の順（`status` と同じ並び）に並べる
+    - 検索語を入れたあとの画面上の並びとは違うことがある
+  - キーマップは fzf の標準のまま変えない。space だけは選択の切り替えに割り当て、押してもカーソルを動かさない（`--bind space:toggle`）
+    - fzf の標準で選択に使う Tab は、HHKB などのキーボードで押しにくいため
+    - Tab も fzf の標準どおり（選択を切り替えて次の行へ移る）使える
+    - space を選択に使うため、絞り込みの検索語に空白は打てない
+  - 画面の見た目
+    - header には操作名（例: `master promote: env -> master`）だけを出し、一覧との間に区切り線を引く。キーの説明は区切り線上のラベルに出す
+    - 選んだ行には太字の緑の `+` を付け、背景を暗い緑（256 色の 22）にする
+      - 背景色に灰色を使わないのは、カーソル行の背景が灰色のため。赤系を使わないのは、`[conflict]` のラベルが赤のため
+    - カーソル行ではカーソルの背景が選択の背景より優先されるため、選んだかどうかは `+` のマーカーだけで見分ける
+      - fzf の配色には、カーソル行かつ選択中の行に使う色がない
+  - 候補があるのに fzf が無いときや、fzf がエラーで終わったときは、エラーで終了する
+- `master promote -i` は、差分のある競合ファイルに加えて env だけにあるファイルも候補にする
+  - 引数なしの promote は競合ファイルだけを対象にするが、パスを指定した promote は env だけにあるファイルも受け付けるため、それに合わせる
+  - パスと `-i` は同時に渡せない
+- preview には、書き込み先の今の中身から書き込まれる中身への diff を `git diff --no-index` で出す
+  - `+` の行が書き込まれる内容になる
+    - `local apply -i` と `master apply -i` では、`local diff` / `master diff` と左右が逆になる
+    - preview の枠線上のラベルにも `+` の意味を出す
+  - fzf の各行に 2 つのパスを持たせ、preview では git だけを実行する
+    - カーソルを動かすたびに `nukegara.rb` を起動しないため
+  - シンボリックリンクは `File.realpath` でリンク先のパスにしてから渡す
+    - `git diff --no-index` はシンボリックリンクをリンクそのものとして比べるため
+  - 書き込み先が無いファイルや、リンク切れなどで解決できないパスは `/dev/null` として渡す
+  - `diff` コマンドと違ってコピーを挟まないため、中身と一緒に権限も違うファイルでは `old mode` / `new mode` の行も出る
+  - preview は一覧の右に半分の幅で置き、その幅が 80 桁未満（端末の幅がおよそ 160 桁未満）のときは一覧の下に置く
 
 ### status と diff
 - `status` はファイルごとに `[differ]` や `[conflict]` などの種類とパスだけを 1 行で出し、中身は出さない
@@ -111,6 +147,10 @@ ruby nukegara.rb local pull --execute
 # worktree → ローカルに反映する（実行）
 ruby nukegara.rb local apply --execute
 
+# 同期するファイルを fzf で選び、確認の後に実行する
+ruby nukegara.rb local pull -i
+ruby nukegara.rb local apply -i
+
 # master と env で競合しているファイルと env だけにあるファイルを一覧する
 ruby nukegara.rb master status
 
@@ -129,6 +169,10 @@ ruby nukegara.rb master promote --execute
 
 # 特定のファイルを master に昇格する（実行）
 ruby nukegara.rb master promote config/nvim/init.lua --execute
+
+# 昇格・反映するファイルを fzf で選び、確認の後に実行する
+ruby nukegara.rb master promote -i
+ruby nukegara.rb master apply -i
 
 # env worktree の git status を確認する
 ruby nukegara.rb git status

@@ -345,6 +345,12 @@ module NukegaraHelpers
     exit 1
   end
 
+  # -i already asks y/N for the picked files, so it goes on to execute without
+  # --execute.
+  def dry_run?
+    !(options[:execute] || options[:interactive])
+  end
+
   def confirm_and_execute(change_labels, dry_run, execute_command:)
     if change_labels.empty?
       puts "Nothing to do."
@@ -360,6 +366,64 @@ module NukegaraHelpers
     end
 
     yes?("\nProceed with #{change_labels.size} change(s)? [y/N]")
+  end
+
+  # Each line carries the two paths its preview diffs, so moving the cursor
+  # runs only git instead of starting this script again. The diff goes from
+  # dest to src, so its "+" lines are what the change will write.
+  def pick_changes(changes, header:)
+    return changes if changes.empty?
+
+    lines = changes.each_with_index.map do |change, i|
+      [i, preview_path(change[:dest]), preview_path(change[:src]), change[:pick_label] || change[:label]].join("\t")
+    end
+    # Space picks instead of fzf's default Tab, which is awkward to reach on
+    # some keyboards, and it only toggles without moving down, so the line
+    # just picked stays in view. Space can no longer be typed into the query,
+    # which matters little for paths. fzf's thin default marker is easy to
+    # miss, so picked lines get a bold "+" and a dark green background (22:
+    # the cursor line is gray and [conflict] labels are red). On the cursor
+    # line fzf's own background wins, leaving the marker as the only sign.
+    #
+    # The preview sits beside the list at half width, and drops under it when
+    # that half is narrower than the 80 columns code is usually wrapped at.
+    # Under the list it takes 60% of the height, as a diff needs more lines
+    # than the one-line entries do.
+    out, status = Open3.capture2("fzf", "--multi", "--ansi", "--delimiter", "\t", "--with-nth", "4",
+                                 "--bind", "space:toggle", "--marker", "+",
+                                 "--color", "marker:green:bold,selected-bg:22",
+                                 "--header", header, "--header-border", "line",
+                                 "--header-label", " space: toggle / enter: confirm ",
+                                 "--preview", "git diff --no-index --color=always -- {2} {3}",
+                                 "--preview-label", " + lines get written ",
+                                 "--preview-window", "right,50%,<80(down,60%)",
+                                 stdin_data: lines.join("\n"))
+    # Exit 1 (nothing toggled and no line matches the query) and 130 (Esc or
+    # ctrl-c) pick nothing. Any other failure, such as an option this fzf does
+    # not know, is reported instead of being passed off as an empty pick.
+    return [] if [1, 130].include?(status.exitstatus)
+
+    unless status.success?
+      warn "Error: fzf failed (#{status})."
+      exit 1
+    end
+
+    # fzf prints the picks in the order they were selected; sorting keeps the
+    # confirmation in the order the changes were given to fzf.
+    changes.values_at(*out.lines.map { it.split("\t").first.to_i }.sort)
+  rescue Errno::ENOENT
+    warn "Error: fzf is required for --interactive."
+    exit 1
+  end
+
+  # git diff --no-index compares a symlink as the link itself and cannot open
+  # a missing path, so the preview gets the file the link points to, or
+  # /dev/null for a side that does not exist or cannot be resolved (e.g. a
+  # dangling symlink), which git shows as added or deleted.
+  def preview_path(path)
+    File.realpath(path.to_s)
+  rescue SystemCallError
+    File::NULL
   end
 
   def print_next_steps(steps)
@@ -418,12 +482,16 @@ class Local < Thor
 
   desc "pull", "Sync local filesystem -> env worktree"
   option :execute, type: :boolean, default: false, desc: "Actually execute (default: dry-run)"
+  option :interactive, type: :boolean, default: false, aliases: "-i",
+                       desc: "Pick files in fzf, then confirm and execute"
   def pull
     sync(direction: :pull)
   end
 
   desc "apply", "Apply env worktree -> local filesystem"
   option :execute, type: :boolean, default: false, desc: "Actually execute (default: dry-run)"
+  option :interactive, type: :boolean, default: false, aliases: "-i",
+                       desc: "Pick files in fzf, then confirm and execute"
   def apply
     sync(direction: :apply)
   end
@@ -488,12 +556,11 @@ class Local < Thor
   # pull copies local -> worktree, apply copies worktree -> local. Both walk
   # the same target list and differ only in which side is the source.
   def sync(direction:)
-    dry_run = !options[:execute]
-
     host_config = @config.current_host_config
     @config.check_worktree_exists!(host_config)
 
     worktree_dir = @config.worktree_dir(host_config)
+    missing_kind = direction == :pull ? :worktree_missing : :local_missing
     changes = []
 
     host_config[:targets].each do |entry|
@@ -506,11 +573,18 @@ class Local < Thor
         dest = resolve(dest_base, rel)
         next if dest.file? && FileUtils.cmp(src.to_s, dest.to_s)
 
-        changes << { src: src, dest: dest }
+        pick_entry = { kind: dest.file? ? :differ : missing_kind,
+                       nukegara_rel: Pathname(entry[:nukegara]).join(rel).cleanpath.to_s }
+        changes << { src: src, dest: dest, pick_label: status_line(pick_entry) }
       end
     end
 
-    return unless confirm_and_execute(changes.map { "#{it[:src]} -> #{it[:dest]}" }, dry_run,
+    if options[:interactive]
+      sides = direction == :pull ? "local -> env" : "env -> local"
+      changes = pick_changes(changes, header: "local #{direction}: #{sides}")
+    end
+
+    return unless confirm_and_execute(changes.map { "#{it[:src]} -> #{it[:dest]}" }, dry_run?,
                                       execute_command: "nukegara local #{direction} --execute")
 
     apply_changes(changes)
@@ -533,7 +607,7 @@ class Master < Thor
     entries = effective_entries
     conflicts = differing_conflicts(entries)
 
-    entries.select { it[:source] == :env }.each { puts colorize("[env-only] #{it[:nukegara_rel]}", :cyan) }
+    entries.select { it[:source] == :env }.each { puts env_only_line(it) }
     conflicts.each { puts conflict_line(it) }
 
     if conflicts.empty?
@@ -577,14 +651,23 @@ class Master < Thor
   desc "promote [NUKEGARA_REL]",
        "Promote env to master. No args: dry-run all conflicts. With path: promote specific file (conflict or env-only)"
   option :execute, type: :boolean, default: false, desc: "Actually execute (default: dry-run)"
+  option :interactive, type: :boolean, default: false, aliases: "-i",
+                       desc: "Pick conflicts and env-only files in fzf, then confirm and execute"
   def promote(nukegara_rel = nil)
+    if options[:interactive] && nukegara_rel
+      warn "Error: give either a path or --interactive, not both."
+      exit 1
+    end
+
     require_master!(@config)
     host_config = @config.current_host_config
     @config.check_worktree_exists!(host_config)
 
     all_entries = EffectiveConfig.compute(@config, host_config)
 
-    if nukegara_rel.nil?
+    if options[:interactive]
+      promote_picked(all_entries)
+    elsif nukegara_rel.nil?
       promote_all(all_entries)
     else
       promote_one(all_entries, nukegara_rel)
@@ -593,9 +676,9 @@ class Master < Thor
 
   desc "apply", "Overwrite current env worktree to match master (overwrite conflicts)"
   option :execute, type: :boolean, default: false, desc: "Actually execute (default: dry-run)"
+  option :interactive, type: :boolean, default: false, aliases: "-i",
+                       desc: "Pick files in fzf, then confirm and execute"
   def apply
-    dry_run = !options[:execute]
-
     require_master!(@config)
     host_config = @config.current_host_config
     @config.check_worktree_exists!(host_config)
@@ -622,7 +705,9 @@ class Master < Thor
       end
     end
 
-    return unless confirm_and_execute(changes.map { |change| change[:label] }, dry_run,
+    changes = pick_changes(changes, header: "master apply: master -> env") if options[:interactive]
+
+    return unless confirm_and_execute(changes.map { |change| change[:label] }, dry_run?,
                                       execute_command: "nukegara master apply --execute")
 
     apply_changes(changes)
@@ -646,17 +731,19 @@ class Master < Thor
     colorize("[conflict] #{entry[:nukegara_rel]}", :red)
   end
 
+  def env_only_line(entry)
+    colorize("[env-only] #{entry[:nukegara_rel]}", :cyan)
+  end
+
   # Promotes every conflicting file (env content wins) to master.
   def promote_all(all_entries)
-    dry_run = !options[:execute]
-
     changes = all_entries.select { |e| e[:source] == :conflict }.filter_map do |e|
       next if FileUtils.cmp(e[:master_path].to_s, e[:env_path].to_s)
 
       { src: e[:env_path], dest: e[:master_path], label: conflict_line(e) }
     end
 
-    return unless confirm_and_execute(changes.map { |change| change[:label] }, dry_run,
+    return unless confirm_and_execute(changes.map { |change| change[:label] }, dry_run?,
                                       execute_command: "nukegara master promote --execute")
 
     apply_changes(changes)
@@ -665,8 +752,6 @@ class Master < Thor
 
   # Promotes a single file (conflict or env-only) to master.
   def promote_one(all_entries, nukegara_rel)
-    dry_run = !options[:execute]
-
     entry = all_entries.find do |e|
       e[:nukegara_rel] == nukegara_rel && [:conflict, :env].include?(e[:source])
     end
@@ -683,10 +768,34 @@ class Master < Thor
                 label: nukegara_rel, left_label: "master", right_label: "env")
     end
 
-    return unless confirm_and_execute(["#{src} -> #{dest}"], dry_run,
+    return unless confirm_and_execute(["#{src} -> #{dest}"], dry_run?,
                                       execute_command: "nukegara master promote #{nukegara_rel.shellescape} --execute")
 
     apply_changes([{ src: src, dest: dest }])
+    puts "master promote completed."
+  end
+
+  # Offers env-only files as well as conflicts, the same files promote_one
+  # accepts, rather than only the conflicts promote_all covers.
+  def promote_picked(all_entries)
+    changes = all_entries.filter_map do |e|
+      case e[:source]
+      when :conflict
+        # same_content? rather than FileUtils.cmp, so a dangling symlink shows
+        # up in the list instead of aborting before fzf opens.
+        next if PathCollector.same_content?(e[:master_path], e[:env_path])
+
+        { src: e[:env_path], dest: e[:master_path], label: conflict_line(e) }
+      when :env
+        { src: e[:env_path], dest: @config.master_dir.join(e[:nukegara_rel]), label: env_only_line(e) }
+      end
+    end
+    changes = pick_changes(changes, header: "master promote: env -> master")
+
+    return unless confirm_and_execute(changes.map { |change| change[:label] }, dry_run?,
+                                      execute_command: "nukegara master promote -i")
+
+    apply_changes(changes)
     puts "master promote completed."
   end
 end
