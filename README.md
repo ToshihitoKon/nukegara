@@ -50,7 +50,9 @@ That's it. Your live dotfiles are now mirrored into a versioned Git branch.
 
 ```
 .
-├── nukegara.rb         # the entire tool, in one Ruby file
+├── nukegara.rb         # entry point: loads the gems and starts the CLI
+├── lib/                # the tool itself, one file per feature
+│   └── commands/       # the local / master / git subcommands
 ├── targets.yaml        # hosts, branch mappings, file targets
 ├── master/             # optional: configs shared across environments
 └── environments/       # git worktrees, one per branch
@@ -169,5 +171,5 @@ Each host hashes its own name with MD5 (`uname -n`). At startup `nukegara.rb` co
 ---
 
 <div align="center">
-<sub>Built with Ruby + Thor + <code>git worktree</code>. One file, no daemons, no surprises.</sub>
+<sub>Built with Ruby + Thor + <code>git worktree</code>. No daemons, no surprises.</sub>
 </div>

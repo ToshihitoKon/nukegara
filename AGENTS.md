@@ -297,7 +297,13 @@ hosts:
 ## 開発メモ
 
 - このリポジトリは環境ごとにブランチを分ける戦略を採用している
-- main ブランチには共通ツール（`nukegara.rb`、`targets.yaml`）とドキュメントが含まれる
+- main ブランチには共通ツール（`nukegara.rb`、`lib/`、`targets.yaml`）とドキュメントが含まれる
 - 環境ブランチは独立していて環境固有の内容を持つ
 - 複数の環境を同時に扱うには git worktree を使う
 - `nukegara.rb` は Thor フレームワークを使ったサブコマンド CLI として実装されている
+  - `nukegara.rb` は gem の読み込みと `ROOT_DIR` の定義だけを行い、本体は `lib/` 以下に機能ごとに分けている
+    - `lib/cli.rb`: サブコマンドの登録と `health`
+    - `lib/commands/{local,master,git}.rb`: 各サブコマンド
+    - それ以外の `lib/*.rb`: 設定の読み込みや差分の計算など、コマンド間で共有する処理
+  - lib の各ファイルは、使うクラスやモジュールのファイルを `require_relative` で読み込む
+    - Thor の `subcommand` はサブコマンドのクラスが先に定義されている必要があるため
