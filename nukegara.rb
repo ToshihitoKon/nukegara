@@ -11,6 +11,7 @@ require "digest/md5"
 require "open3"
 require "pathname"
 require "shellwords"
+require "tmpdir"
 
 # Use the script's directory as the root so that targets.yaml and worktree
 # paths resolve consistently regardless of the current working directory.
@@ -111,6 +112,14 @@ module PathCollector
   def resolve(base, rel)
     rel == "." ? Pathname(base) : Pathname(base).join(rel)
   end
+
+  # A file that cannot be read (e.g. a dangling symlink) counts as differing,
+  # so one broken file does not abort the whole listing.
+  def same_content?(path_a, path_b)
+    FileUtils.cmp(path_a.to_s, path_b.to_s)
+  rescue SystemCallError
+    false
+  end
 end
 
 # Read-only git queries on the env worktree, shared by `git status` and
@@ -147,7 +156,7 @@ end
 
 # Cross-references master/ and the env worktree for every target file,
 # classifying each as :conflict (in both), :env (env-only), or :master
-# (master-only). This classification drives the diff/promote/apply commands.
+# (master-only). This classification drives every master command and health.
 class EffectiveConfig
   include PathCollector
 
@@ -207,6 +216,59 @@ class EffectiveConfig
   end
 end
 
+# Compares the local filesystem with the env worktree for every target file
+# and lists the files that differ, classifying each as :local_missing,
+# :worktree_missing or :differ. Shared by `local status`, `local diff` and
+# `health` so all of them report the same set of files.
+class LocalEnvDiff
+  include PathCollector
+
+  def self.compute(config, host_config)
+    new(config, host_config).compute
+  end
+
+  def initialize(config, host_config)
+    @host_config  = host_config
+    @worktree_dir = config.worktree_dir(host_config)
+  end
+
+  def compute
+    results = []
+
+    @host_config[:targets].each do |entry|
+      local_base    = File.expand_path(entry[:target])
+      nukegara_base = entry[:nukegara]
+      exclude       = entry[:exclude]
+
+      local_files = collect_files(Pathname(local_base), exclude)
+      env_files   = collect_files(@worktree_dir.join(nukegara_base), exclude)
+
+      (local_files.keys | env_files.keys).sort.each do |rel|
+        local_path = local_files[rel]
+        env_path   = env_files[rel]
+
+        kind = if local_path.nil?
+                 :local_missing
+               elsif env_path.nil?
+                 :worktree_missing
+               elsif !same_content?(local_path, env_path)
+                 :differ
+               end
+        next if kind.nil?
+
+        results << {
+          nukegara_rel: Pathname(nukegara_base).join(rel).cleanpath.to_s,
+          kind: kind,
+          local_path: local_path,
+          env_path: env_path
+        }
+      end
+    end
+
+    results
+  end
+end
+
 module NukegaraHelpers
   private
 
@@ -231,6 +293,48 @@ module NukegaraHelpers
                           path_a.to_s, path_b.to_s)
     puts out unless out.empty?
     true
+  end
+
+  # Shows the diffs of [nukegara_rel, left_path, right_path] files as a single
+  # `git diff --no-index` over two scratch trees of copies, so git's own pager,
+  # colors and config apply to all of them at once. Running git per file would
+  # open a pager per file, and giving git the real paths would diff a symlink
+  # as the link instead of the content status and pull/apply follow it to.
+  def show_diffs(left_label, right_label, files)
+    Dir.mktmpdir("nukegara-diff") do |dir|
+      # Both trees must exist even when every file is missing on one side,
+      # since git refuses to compare a directory that does not exist.
+      FileUtils.mkdir_p([File.join(dir, left_label), File.join(dir, right_label)])
+      files.each do |rel, left_path, right_path|
+        copy_for_diff(left_path, File.join(dir, left_label, rel))
+        copy_for_diff(right_path, File.join(dir, right_label, rel))
+      end
+
+      # The tree names already tell the sides apart, so git's a/ b/ prefixes
+      # are dropped. --no-renames keeps a file that exists on one side only
+      # from being paired with a similar file on the other.
+      system("git", "-C", dir, "diff", "--no-index", "--no-prefix", "--no-renames", "--",
+             left_label, right_label)
+    end
+  end
+
+  # A side that is missing or unreadable (e.g. a dangling symlink) is left out
+  # of the scratch tree, so git shows the other side as added or deleted. Only
+  # the content is copied: FileUtils.cp would carry the mode over and make git
+  # report mode changes that status and pull/apply never look at.
+  def copy_for_diff(src, dest)
+    return if src.nil? || !File.readable?(src)
+
+    FileUtils.mkdir_p(File.dirname(dest))
+    IO.copy_stream(src.to_s, dest)
+  end
+
+  # Conflicts whose master and env copies actually differ. A conflict with the
+  # same content on both sides needs neither promote nor apply.
+  def differing_conflicts(entries)
+    entries.select do |entry|
+      entry[:source] == :conflict && !PathCollector.same_content?(entry[:master_path], entry[:env_path])
+    end
   end
 
   def require_master!(config)
@@ -324,53 +428,62 @@ class Local < Thor
     sync(direction: :apply)
   end
 
-  desc "diff", "Show diff between local filesystem and env worktree"
-  def diff
-    host_config = @config.current_host_config
-    @config.check_worktree_exists!(host_config)
-
-    worktree_dir = @config.worktree_dir(host_config)
-    diff_kinds = []
-
-    host_config[:targets].each do |entry|
-      local_base    = File.expand_path(entry[:target])
-      nukegara_base = entry[:nukegara]
-      exclude       = entry[:exclude]
-
-      local_files = collect_files(Pathname(local_base), exclude)
-      env_files   = collect_files(worktree_dir.join(nukegara_base), exclude)
-
-      (local_files.keys | env_files.keys).sort.each do |rel|
-        local_path = local_files[rel]
-        env_path   = env_files[rel]
-        label      = Pathname(nukegara_base).join(rel).cleanpath.to_s
-
-        if local_path.nil?
-          puts colorize("[local-missing] #{label}", :yellow)
-          diff_kinds << :local_missing
-        elsif env_path.nil?
-          puts colorize("[worktree-missing] #{label}", :yellow)
-          diff_kinds << :worktree_missing
-        elsif show_diff(env_path, local_path, label: label, left_label: "worktree", right_label: "local")
-          diff_kinds << :differ
-        end
-      end
-    end
-
-    if diff_kinds.empty?
+  desc "status", "List files that differ between local filesystem and env worktree"
+  def status
+    entries = local_env_diff
+    if entries.empty?
       puts "No differences found."
       return
     end
 
-    # pull copies only files that exist locally and apply only files that exist
-    # in the worktree, so a one-sided diff leaves the other direction a no-op.
-    next_steps = {}
-    next_steps["sync local -> env"] = "nukegara local pull" if diff_kinds.intersect?([:worktree_missing, :differ])
-    next_steps["sync env -> local"] = "nukegara local apply" if diff_kinds.intersect?([:local_missing, :differ])
-    print_next_choices(next_steps)
+    entries.each { puts status_line(it) }
+    print_next_steps("review a file's diff" => "nukegara local diff <path>")
+  end
+
+  desc "diff [NUKEGARA_REL]",
+       "Show worktree -> local diffs of all differing files in a pager. With path: only that file"
+  def diff(nukegara_rel = nil)
+    entries = local_env_diff
+
+    if nukegara_rel
+      entry = entries.find { it[:nukegara_rel] == nukegara_rel }
+      unless entry
+        warn "Error: '#{nukegara_rel}' is not listed by `nukegara local status`."
+        exit 1
+      end
+      shown = [entry]
+    elsif entries.empty?
+      puts "No differences found."
+      return
+    else
+      shown = entries
+    end
+
+    show_diffs("worktree", "local", shown.map { [it[:nukegara_rel], it[:env_path], it[:local_path]] })
+    print_next_choices(sync_choices(entries))
   end
 
   private
+
+  def local_env_diff
+    host_config = @config.current_host_config
+    @config.check_worktree_exists!(host_config)
+    LocalEnvDiff.compute(@config, host_config)
+  end
+
+  def status_line(entry)
+    colorize("[#{entry[:kind].to_s.tr('_', '-')}] #{entry[:nukegara_rel]}", :yellow)
+  end
+
+  # pull copies only files that exist locally and apply only files that exist
+  # in the worktree, so a one-sided diff leaves the other direction a no-op.
+  def sync_choices(entries)
+    kinds = entries.map { it[:kind] }
+    choices = {}
+    choices["sync local -> env"] = "nukegara local pull" if kinds.intersect?([:worktree_missing, :differ])
+    choices["sync env -> local"] = "nukegara local apply" if kinds.intersect?([:local_missing, :differ])
+    choices
+  end
 
   # pull copies local -> worktree, apply copies worktree -> local. Both walk
   # the same target list and differ only in which side is the source.
@@ -415,39 +528,50 @@ class Master < Thor
     @config = NukegaraConfig.new
   end
 
-  desc "diff", "Show diff between master and current env worktree"
-  def diff
-    require_master!(@config)
-    host_config = @config.current_host_config
-    @config.check_worktree_exists!(host_config)
+  desc "status", "List conflicting and env-only files between master and current env worktree"
+  def status
+    entries = effective_entries
+    conflicts = differing_conflicts(entries)
 
-    any_diff = false
+    entries.select { it[:source] == :env }.each { puts colorize("[env-only] #{it[:nukegara_rel]}", :cyan) }
+    conflicts.each { puts conflict_line(it) }
 
-    EffectiveConfig.compute(@config, host_config).each do |entry|
-      case entry[:source]
-      when :conflict
-        has_diff = show_diff(entry[:master_path], entry[:env_path],
-                             label: entry[:nukegara_rel],
-                             left_label: "master", right_label: "env")
-        if has_diff
-          puts colorize("[conflict] #{entry[:nukegara_rel]}", :red)
-          any_diff = true
-        end
-      when :env
-        puts colorize("[env-only] #{entry[:nukegara_rel]}", :cyan)
-      when :master
-        # master-only files are not a conflict; nothing to report here.
-      end
-    end
-
-    if any_diff
-      print_next_choices(
-        "promote env -> master" => "nukegara master promote",
-        "apply master -> env" => "nukegara master apply"
-      )
-    else
+    if conflicts.empty?
       puts "No conflicts found."
+    else
+      print_next_steps("review a conflict's diff" => "nukegara master diff <path>")
     end
+  end
+
+  desc "diff [NUKEGARA_REL]",
+       "Show master -> env diffs of all conflicting files in a pager. With path: only that file"
+  def diff(nukegara_rel = nil)
+    conflicts = differing_conflicts(effective_entries)
+
+    if nukegara_rel
+      entry = conflicts.find { it[:nukegara_rel] == nukegara_rel }
+      unless entry
+        warn "Error: '#{nukegara_rel}' is not listed as a conflict by `nukegara master status`."
+        exit 1
+      end
+      shown = [entry]
+    elsif conflicts.empty?
+      puts "No conflicts found."
+      return
+    else
+      shown = conflicts
+    end
+
+    show_diffs("master", "env", shown.map { [it[:nukegara_rel], it[:master_path], it[:env_path]] })
+
+    # When a path was given, only that file has been reviewed, so promote is
+    # narrowed to it rather than overwriting conflicts never looked at. apply
+    # takes no path, so it still covers every conflict.
+    promote_command = ["nukegara master promote", nukegara_rel&.shellescape].compact.join(" ")
+    print_next_choices(
+      "promote env -> master" => promote_command,
+      "apply master -> env" => "nukegara master apply"
+    )
   end
 
   desc "promote [NUKEGARA_REL]",
@@ -486,7 +610,7 @@ class Master < Thor
         dest = entry[:env_path]
         next if FileUtils.cmp(src.to_s, dest.to_s)
 
-        changes << { src: src, dest: dest, label: colorize("[conflict] #{entry[:nukegara_rel]}", :red) }
+        changes << { src: src, dest: dest, label: conflict_line(entry) }
       when :master
         src  = entry[:master_path]
         dest = worktree.join(entry[:nukegara_rel])
@@ -511,6 +635,17 @@ class Master < Thor
 
   private
 
+  def effective_entries
+    require_master!(@config)
+    host_config = @config.current_host_config
+    @config.check_worktree_exists!(host_config)
+    EffectiveConfig.compute(@config, host_config)
+  end
+
+  def conflict_line(entry)
+    colorize("[conflict] #{entry[:nukegara_rel]}", :red)
+  end
+
   # Promotes every conflicting file (env content wins) to master.
   def promote_all(all_entries)
     dry_run = !options[:execute]
@@ -518,7 +653,7 @@ class Master < Thor
     changes = all_entries.select { |e| e[:source] == :conflict }.filter_map do |e|
       next if FileUtils.cmp(e[:master_path].to_s, e[:env_path].to_s)
 
-      { src: e[:env_path], dest: e[:master_path], label: colorize("[conflict] #{e[:nukegara_rel]}", :red) }
+      { src: e[:env_path], dest: e[:master_path], label: conflict_line(e) }
     end
 
     return unless confirm_and_execute(changes.map { |change| change[:label] }, dry_run,
@@ -707,7 +842,6 @@ end
 
 class CLI < Thor
   include NukegaraHelpers
-  include PathCollector
   include WorktreeGit
 
   def initialize(*args)
@@ -752,8 +886,8 @@ class CLI < Thor
                  else
                    remote_sync_step(env_remote[:behind], env_remote[:ahead])
                  end
-    next_steps["review local<->env"] = "nukegara local diff" if local_env.values.sum.positive?
-    next_steps["review env<->master"] = "nukegara master diff" if env_master && env_master.values.sum.positive?
+    next_steps["review local<->env"] = "nukegara local status" if local_env.values.sum.positive?
+    next_steps["review env<->master"] = "nukegara master status" if env_master && env_master.values.sum.positive?
     print_next_steps(next_steps)
   end
 
@@ -762,41 +896,16 @@ class CLI < Thor
   # Counts how local and the env worktree diverge: files present on only one
   # side (missing) and files present on both but differing in content.
   def local_env_counts(host_config)
-    worktree_dir = @config.worktree_dir(host_config)
-    counts = Hash.new(0)
-
-    host_config[:targets].each do |entry|
-      local_files = collect_files(Pathname(File.expand_path(entry[:target])), entry[:exclude])
-      env_files   = collect_files(worktree_dir.join(entry[:nukegara]), entry[:exclude])
-
-      (local_files.keys | env_files.keys).each do |rel|
-        local_path = local_files[rel]
-        env_path   = env_files[rel]
-
-        if local_path.nil? || env_path.nil?
-          counts[:missing] += 1
-        elsif !FileUtils.cmp(local_path.to_s, env_path.to_s)
-          counts[:differ] += 1
-        end
-      end
-    end
-
-    counts
+    LocalEnvDiff.compute(@config, host_config)
+                .map { it[:kind] == :differ ? :differ : :missing }
+                .tally
   end
 
   # Counts conflicts between master and the env worktree (files in both whose
   # content differs). env-only files are healthy (just not promoted yet) and
   # master-only files are not conflicts, so neither is counted.
   def env_master_counts(host_config)
-    counts = Hash.new(0)
-
-    EffectiveConfig.compute(@config, host_config).each do |entry|
-      next unless entry[:source] == :conflict
-
-      counts[:conflict] += 1 unless FileUtils.cmp(entry[:master_path].to_s, entry[:env_path].to_s)
-    end
-
-    counts
+    { conflict: differing_conflicts(EffectiveConfig.compute(@config, host_config)).size }
   end
 
   # Counts how the env worktree diverges from its remote: uncommitted files,

@@ -96,6 +96,8 @@ hosts:
 
 When there is a follow-up step, a command ends with a `Next:` block that lists what to run next, one command per line so you can paste it straight into your shell. Commands that take `--execute` are suggested with it only after a dry-run, and without it everywhere else. The hints call the bare `nukegara` command, so put a symlink to `nukegara.rb` on your `PATH`.
 
+As with `git status` and `git diff`, `status` prints one tagged path per file (`[differ]`, `[conflict]`, ...) and `diff` shows contents through `git diff --no-index`. Pass a path exactly as `status` prints it (for `master diff`, a `[conflict]` one) to see just that file, or nothing to see every file. The files are copied into two scratch trees (`worktree/` and `local/`, or `master/` and `env/`) and git compares them in one run, so your pager and colors behave just as they do for `git diff`. A symlinked file is diffed by the content it points to, the same content `status`, `pull` and `apply` see. Hints that need a file name use a `<path>` placeholder; replace it with a path from `status`.
+
 ### 🩺 `health` — the one-line status check
 
 ```bash
@@ -105,7 +107,9 @@ ruby nukegara.rb health    # fetch, then summarize local <-> env <-> master and 
 ### 💻 `local` — your filesystem ⇄ the env worktree
 
 ```bash
-ruby nukegara.rb local diff             # what's different?
+ruby nukegara.rb local status           # which files differ?
+ruby nukegara.rb local diff             # every differing file, in your pager
+ruby nukegara.rb local diff zshrc       # ...or just one file
 ruby nukegara.rb local pull             # filesystem -> worktree (dry-run)
 ruby nukegara.rb local pull --execute   # filesystem -> worktree (for real)
 ruby nukegara.rb local apply --execute  # worktree -> filesystem (deploy to a new machine)
@@ -114,7 +118,8 @@ ruby nukegara.rb local apply --execute  # worktree -> filesystem (deploy to a ne
 ### 🌐 `master` — the shared layer ⇄ the env worktree
 
 ```bash
-ruby nukegara.rb master diff                       # master vs. this env (conflicts in red)
+ruby nukegara.rb master status                     # env-only files, then conflicting files (red)
+ruby nukegara.rb master diff                       # every conflict, in your pager (or pass one path)
 ruby nukegara.rb master apply --execute            # push master's version into the env
 ruby nukegara.rb master promote                    # promote all conflicting env files (dry-run)
 ruby nukegara.rb master promote --execute          # ...for real
@@ -136,7 +141,8 @@ ruby nukegara.rb git setup                # create the worktree (and branch) for
 
 ```bash
 # You tweaked ~/.tmux.conf on your laptop. Capture it:
-ruby nukegara.rb local diff               # eyeball the change
+ruby nukegara.rb local status             # tmux.conf shows up as [differ]
+ruby nukegara.rb local diff tmux.conf     # eyeball the change
 ruby nukegara.rb local pull --execute     # mirror it into the worktree
 
 # Commit and push it from the branch:
