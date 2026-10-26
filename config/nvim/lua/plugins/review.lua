@@ -59,7 +59,21 @@ vim.keymap.set('n', 'g]', with_diff_pair(function(left, right) show_only(right, 
     { desc = 'diff: 右だけ表示' })
 vim.keymap.set('n', 'g.', with_diff_pair(show_both), { desc = 'diff: 左右を同じ幅に戻す' })
 
-require('diffview').setup()
+require('diffview').setup({ enhanced_diff_hl = true })
 vim.keymap.set('n', 'tgd', ':DiffviewOpen<CR>', { silent = true })
 vim.keymap.set('n', 'tgh', ':DiffviewFileHistory %<CR>', { silent = true })
 vim.keymap.set('n', 'tgq', ':DiffviewClose<CR>', { silent = true })
+
+-- diffview も ColorScheme のたびに自前の色を設定し直すため、setup より後に登録して毎回上書きする
+vim.api.nvim_create_autocmd('ColorScheme', {
+    pattern = 'catppuccin*',
+    callback = function()
+        local palette = require('catppuccin.palettes').get_palette()
+        local darken = require('catppuccin.utils.colors').darken
+        -- catppuccin の既定の約 3 分の 2 の濃さにして、緑と赤の背景を控えめにする
+        vim.api.nvim_set_hl(0, 'DiffviewDiffAdd', { bg = darken(palette.green, 0.12, palette.base) })
+        vim.api.nvim_set_hl(0, 'DiffviewDiffAddAsDelete', { bg = darken(palette.red, 0.12, palette.base) })
+        vim.api.nvim_set_hl(0, 'DiffviewDiffChange', { bg = darken(palette.blue, 0.05, palette.base) })
+        vim.api.nvim_set_hl(0, 'DiffviewDiffText', { bg = darken(palette.blue, 0.20, palette.base) })
+    end,
+})
