@@ -5,6 +5,13 @@ require('neo-tree').setup({
     sort_case_insensitive = false,
 
     default_component_configs = {
+        container = {
+            -- 長い名前の末尾がグラデーションで薄く消えていくと視認しづらいため無効化。
+            -- なお neo-tree は表示前に名前自体をウィンドウ幅で切り詰めており、
+            -- 横スクロールでは続きを見られない。全体を見たい場合は "e" キー
+            -- (toggle_auto_expand_width) でその場だけウィンドウ幅を広げる。
+            enable_character_fade = false,
+        },
         git_status = {
             symbols = {
                 -- NOTE: Status はいらん
@@ -30,11 +37,13 @@ require('neo-tree').setup({
         statusline = true
     },
     window = {
+        width = 35,
         mappings = {
             ["<C-f>"] = false, -- use Toggleterm
         }
     },
 })
+
 
 require('toggleterm').setup({
     open_mapping = [[<C-f>]],
@@ -51,8 +60,6 @@ require('neoscroll').setup({
         '<C-u>', '<C-d>',
     }
 })
-
-require('nvim_comment').setup()
 
 vim.notify = require("notify")
 vim.notify.setup({
@@ -101,9 +108,9 @@ require('telescope-ag').setup()
 require('nvim-treesitter').install({
     'bash', 'css', 'csv', 'dockerfile', 'embedded_template', 'git_config',
     'git_rebase', 'gitcommit', 'gitignore', 'go', 'gomod', 'gosum', 'groovy',
-    'hcl', 'html', 'ini', 'java', 'javascript', 'json', 'jsonc', 'jsonnet',
+    'hcl', 'html', 'ini', 'java', 'javascript', 'json', 'jsonnet',
     'lua', 'make', 'markdown', 'nginx', 'properties', 'python', 'rego', 'ruby',
-    'scss', 'sql', 'ssh_config', 'svelte', 'tera', 'terraform', 'tmux', 'toml',
+    'scss', 'sql', 'ssh_config', 'svelte', 'tera', 'terraform', 'toml',
     'tsx', 'typescript', 'vim', 'vimdoc', 'xml', 'yaml',
 })
 

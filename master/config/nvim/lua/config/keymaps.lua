@@ -8,6 +8,10 @@ vim.keymap.set('n', ';', '/')
 vim.keymap.set('n', '<C-c><C-c>', ':noh<CR>', { silent = true })
 vim.keymap.set('i', '<C-c>', '<Esc>', { silent = true })
 
+-- for fold
+vim.keymap.set("n", "<Tab>", "zo")
+vim.keymap.set("n", "<S-Tab>", "zc")
+
 local function keymap_w_repeat(mode, sign, cmd)
     vim.keymap.set(mode, sign,
         function()
