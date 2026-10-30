@@ -37,7 +37,7 @@ class Local < Thor
     end
 
     entries.each { puts status_line(it) }
-    print_next_steps("review a file's diff" => "nukegara local diff <path>")
+    print_next_steps("review a file's diff" => nukegara_command("local diff <path>"))
   end
 
   desc "diff [NUKEGARA_REL]",
@@ -48,7 +48,7 @@ class Local < Thor
     if nukegara_rel
       entry = entries.find { it[:nukegara_rel] == nukegara_rel }
       unless entry
-        warn "Error: '#{nukegara_rel}' is not listed by `nukegara local status`."
+        warn "Error: '#{nukegara_rel}' is not listed by `#{nukegara_command('local status')}`."
         exit 1
       end
       shown = [entry]
@@ -79,8 +79,8 @@ class Local < Thor
   def sync_choices(entries)
     kinds = entries.map { it[:kind] }
     choices = {}
-    choices["sync local -> env"] = "nukegara local pull" if kinds.intersect?([:worktree_missing, :differ])
-    choices["sync env -> local"] = "nukegara local apply" if kinds.intersect?([:local_missing, :differ])
+    choices["sync local -> env"] = nukegara_command("local pull") if kinds.intersect?([:worktree_missing, :differ])
+    choices["sync env -> local"] = nukegara_command("local apply") if kinds.intersect?([:local_missing, :differ])
     choices
   end
 
@@ -114,10 +114,10 @@ class Local < Thor
     end
 
     return unless confirm_and_execute(changes.map { "#{it[:src]} -> #{it[:dest]}" }, dry_run?,
-                                      execute_command: "nukegara local #{direction} --execute")
+                                      execute_command: nukegara_command("local #{direction} --execute"))
 
     apply_changes(changes)
     puts "local #{direction} completed."
-    print_next_steps("stage the worktree changes" => "nukegara git stage") if direction == :pull
+    print_next_steps("stage the worktree changes" => nukegara_command("git stage")) if direction == :pull
   end
 end

@@ -38,6 +38,13 @@ class NukegaraConfig
     exit 1
   end
 
+  # master/ shares its checkout with lib/, so git on master stays inside master/.
+  def git_targets(host_config)
+    targets = [{ name: "env", dir: worktree_dir(host_config), pathspec: [] }]
+    targets << { name: "master", dir: master_dir, pathspec: ["."] } if master_enabled?
+    targets
+  end
+
   private
 
   # Pathname#join keeps an absolute master_path as-is.

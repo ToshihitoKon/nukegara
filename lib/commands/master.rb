@@ -22,7 +22,7 @@ class Master < Thor
     if conflicts.empty?
       puts "No conflicts found."
     else
-      print_next_steps("review a conflict's diff" => "nukegara master diff <path>")
+      print_next_steps("review a conflict's diff" => nukegara_command("master diff <path>"))
     end
   end
 
@@ -34,7 +34,7 @@ class Master < Thor
     if nukegara_rel
       entry = conflicts.find { it[:nukegara_rel] == nukegara_rel }
       unless entry
-        warn "Error: '#{nukegara_rel}' is not listed as a conflict by `nukegara master status`."
+        warn "Error: '#{nukegara_rel}' is not listed as a conflict by `#{nukegara_command('master status')}`."
         exit 1
       end
       shown = [entry]
@@ -49,10 +49,10 @@ class Master < Thor
 
     # Narrowed to the given path, so promote does not overwrite conflicts never
     # reviewed. apply takes no path.
-    promote_command = ["nukegara master promote", nukegara_rel&.shellescape].compact.join(" ")
+    promote_command = nukegara_command(["master promote", nukegara_rel&.shellescape].compact.join(" "))
     print_next_choices(
       "promote env -> master" => promote_command,
-      "apply master -> env" => "nukegara master apply"
+      "apply master -> env" => nukegara_command("master apply")
     )
   end
 
@@ -116,13 +116,13 @@ class Master < Thor
     changes = pick_changes(changes, header: "master apply: master -> env") if options[:interactive]
 
     return unless confirm_and_execute(changes.map { |change| change[:label] }, dry_run?,
-                                      execute_command: "nukegara master apply --execute")
+                                      execute_command: nukegara_command("master apply --execute"))
 
     apply_changes(changes)
     puts "master apply completed."
     print_next_steps(
-      "sync env -> local" => "nukegara local apply",
-      "stage the worktree changes" => "nukegara git stage"
+      "sync env -> local" => nukegara_command("local apply"),
+      "stage the worktree changes" => nukegara_command("git stage")
     )
   end
 
@@ -151,10 +151,9 @@ class Master < Thor
     end
 
     return unless confirm_and_execute(changes.map { |change| change[:label] }, dry_run?,
-                                      execute_command: "nukegara master promote --execute")
+                                      execute_command: nukegara_command("master promote --execute"))
 
-    apply_changes(changes)
-    puts "master promote completed."
+    promote_changes(changes)
   end
 
   def promote_one(all_entries, nukegara_rel)
@@ -175,10 +174,9 @@ class Master < Thor
     end
 
     return unless confirm_and_execute(["#{src} -> #{dest}"], dry_run?,
-                                      execute_command: "nukegara master promote #{nukegara_rel.shellescape} --execute")
+                                      execute_command: nukegara_command("master promote #{nukegara_rel.shellescape} --execute"))
 
-    apply_changes([{ src: src, dest: dest }])
-    puts "master promote completed."
+    promote_changes([{ src: src, dest: dest }])
   end
 
   # Offers env-only files too, as promote_one does, not only conflicts.
@@ -198,9 +196,14 @@ class Master < Thor
     changes = pick_changes(changes, header: "master promote: env -> master")
 
     return unless confirm_and_execute(changes.map { |change| change[:label] }, dry_run?,
-                                      execute_command: "nukegara master promote -i")
+                                      execute_command: nukegara_command("master promote -i"))
 
+    promote_changes(changes)
+  end
+
+  def promote_changes(changes)
     apply_changes(changes)
     puts "master promote completed."
+    print_next_steps("stage the master changes" => nukegara_command("git stage"))
   end
 end

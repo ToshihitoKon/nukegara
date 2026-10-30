@@ -132,6 +132,12 @@ module NukegaraHelpers
     File::NULL
   end
 
+  # The script as it was run (e.g. ./nukegara.rb), not a bare "nukegara" that
+  # would need a symlink on PATH.
+  def nukegara_command(args)
+    "#{$PROGRAM_NAME.shellescape} #{args}"
+  end
+
   def print_next_steps(steps)
     print_steps_under("Next:", steps)
   end
@@ -157,9 +163,9 @@ module NukegaraHelpers
   # Behind wins over ahead: a diverged branch must pull before it can push.
   def remote_sync_step(behind, ahead)
     if behind.positive?
-      { "pull the branch" => "nukegara git pull" }
+      { "pull from the remote" => nukegara_command("git pull") }
     elsif ahead.positive?
-      { "push the branch" => "nukegara git push" }
+      { "push to the remote" => nukegara_command("git push") }
     else
       {}
     end

@@ -36,6 +36,16 @@
 - `master status` で競合ファイルと env だけにあるファイルの一覧、`master diff` で競合ファイルの中身の差分を確認でき、`master apply` で master の内容を env に反映できる
 - `master promote` で env の内容を master に昇格できる（引数なし: 全競合ファイル、パス指定: 特定ファイル、`-i`: fzf で選んだファイル）
 
+### git サブコマンド
+- `git status` / `git stage` / `git commit` / `git push` / `git pull` は、1 回の実行で env worktree と master/ の両方を扱う（`git setup` は env だけ）
+  - ふだんの操作で書き換わるのはほぼ片側だけで、もう片側は何もせずに終わるため、対象を選ぶフラグは設けない
+  - 出力は対象ごとに `env:` / `master:` の見出しを付けて分ける
+    - master/ と env worktree では、同じ相対パスが出るため
+- master/ は lib/ などと同じ main の checkout にあるため、`status` / `stage` / `commit` は master/ 以下に絞る
+  - `commit` は master/ をパスに指定して実行し、master/ の外でステージ済みの変更をコミットに入れない
+  - `push` / `pull` は main ブランチ全体に対して行う（git はパスで絞って push できない）
+- `commit` はステージ済みの変更がある側だけでコミットし、メッセージは両方で同じものを使う
+
 ### 環境ブランチでの作業
 - 各環境ブランチは独立していて、独自のドットファイルを持つ
 - 複数の環境を同時に扱うには `git worktree` を使う
@@ -102,7 +112,8 @@
 ### 次の操作の案内
 - 続けて実行すべき操作があるとき、各コマンドは最後に `Next:` ブロックで次に実行するコマンドを表示する
   - 表示は `NukegaraHelpers#print_next_steps`（順に実行する案内）と `#print_next_choices`（どちらか一方を選ぶ案内）に集約している
-  - 案内するコマンドは PATH 上の `nukegara`（`nukegara.rb` へのシンボリックリンク）で書く
+  - 案内するコマンドは、実行したときのスクリプトのパス（`$PROGRAM_NAME`。例: `./nukegara.rb`）で書き、`NukegaraHelpers#nukegara_command` で組み立てる
+    - PATH に `nukegara` を置かずに `./nukegara.rb` で実行しても、案内をそのままコピペして実行できるようにするため
 - 説明の行とコマンドの行を分け、コマンドは 1 行に 1 つだけ出す
   - コマンドの行をそのままコピペして実行できるようにする
   - 行末に `# 説明` を付けると、`interactive_comments` が無効な zsh では引数として渡ってしまう
@@ -112,9 +123,12 @@
   - 見出しが `Next:` の案内は、上から順に実行するものとして並べる
 - `--execute` を取るコマンドは、ドライランの後の案内でだけ `--execute` 付きで出し、それ以外の案内ではフラグなしで出す
 - 次に必要な操作がないときは `Next:` ブロックを出さない
-  - 例: 差分がないとき、`local apply --execute`・`master promote --execute`・`git push` の後
-- `health` は `git fetch` してから env worktree の未コミット・ahead・behind も数え、案内では env <-> remote を最初に出す
-  - リモートより古い env のまま local と同期すると、別マシンからの push と食い違う
+  - 例: 差分がないとき、`local apply --execute`・`git push` の後
+- `health` は `git fetch` してから env worktree と master/ の未コミット・ahead・behind も数え、案内では env <-> remote と master <-> remote を最初に出す
+  - リモートより古い env や master のまま同期すると、別マシンからの push と食い違う
+  - master/ は、master/ 以下の未コミットの変更と、master/ に触れるコミットだけを数える
+    - lib/ など nukegara 本体の変更で health が黄色にならないようにするため
+  - fetch は env worktree で 1 回だけ行う。master/ は同じリポジトリにあるため、master のリモート追跡ブランチもこの fetch で更新される
   - fetch に失敗したときはサマリに `(fetch failed)` を付け、手元のリモート追跡ブランチで数える
 - 差分の案内は `health` → `status` → `diff` の順につなぎ、同期（pull/apply、promote/apply）は `diff` の後に案内する
   - `master diff` にパスを渡したときは、promote の案内もそのパスに絞る
@@ -127,7 +141,7 @@
 # ホストの MD5 ハッシュを取得する
 ruby -e "require 'digest/md5'; puts Digest::MD5.hexdigest(\`uname -n\`.strip)"
 
-# fetch してから local <-> env <-> master と env <-> remote の差分有無を1行サマリで確認する
+# fetch してから local <-> env <-> master と env/master <-> remote の差分有無を1行サマリで確認する
 # （差分があれば次に実行するコマンドも表示する）
 ruby nukegara.rb health
 
@@ -174,21 +188,21 @@ ruby nukegara.rb master promote config/nvim/init.lua --execute
 ruby nukegara.rb master promote -i
 ruby nukegara.rb master apply -i
 
-# env worktree の git status を確認する
+# env worktree と master/ の git status を確認する
 ruby nukegara.rb git status
 
-# env worktree の変更を全 add する（git add -A）
+# env worktree の変更と master/ 以下の変更を全 add する（git add -A）
 ruby nukegara.rb git stage
 
-# ステージ済みの変更をコミットする（メッセージ省略時は "update dotfiles"）
+# env worktree と master/ のステージ済みの変更をコミットする（メッセージ省略時は "update dotfiles"）
 # 事前に git stage していないとエラーで終了する
 ruby nukegara.rb git commit
 ruby nukegara.rb git commit -m "fix tmux config"
 
-# env worktree のブランチを push する
+# env worktree と master/ のブランチを push する
 ruby nukegara.rb git push
 
-# env worktree のブランチを pull する
+# env worktree と master/ のブランチを pull する
 ruby nukegara.rb git pull
 
 # このホストの設定ブランチの worktree を作成する（必要ならブランチ作成・push も行う）
@@ -236,7 +250,7 @@ git worktree remove environments/<environment-branch>
 
 3. **変更をコミット・プッシュする**:
    ```bash
-   # worktree の状態を確認する
+   # env worktree と master/ の状態を確認する
    ruby nukegara.rb git status
 
    # 全変更を add する

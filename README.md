@@ -96,7 +96,7 @@ hosts:
 
 `nukegara` groups its work into four subcommand families. Run `ruby nukegara.rb tree` any time to see the full map.
 
-When there is a follow-up step, a command ends with a `Next:` block that lists what to run next, one command per line so you can paste it straight into your shell. Commands that take `--execute` are suggested with it only after a dry-run, and without it everywhere else. The hints call the bare `nukegara` command, so put a symlink to `nukegara.rb` on your `PATH`.
+When there is a follow-up step, a command ends with a `Next:` block that lists what to run next, one command per line so you can paste it straight into your shell. Commands that take `--execute` are suggested with it only after a dry-run, and without it everywhere else. The hints call the script the way you ran it (e.g. `./nukegara.rb`), so they paste straight back into the same shell.
 
 As with `git status` and `git diff`, `status` prints one tagged path per file (`[differ]`, `[conflict]`, ...) and `diff` shows contents through `git diff --no-index`. Pass a path exactly as `status` prints it (for `master diff`, a `[conflict]` one) to see just that file, or nothing to see every file. The files are copied into two scratch trees (`worktree/` and `local/`, or `master/` and `env/`) and git compares them in one run, so your pager and colors behave just as they do for `git diff`. A symlinked file is diffed by the content it points to, the same content `status`, `pull` and `apply` see. Hints that need a file name use a `<path>` placeholder; replace it with a path from `status`.
 
@@ -105,7 +105,7 @@ To sync only some of the files, add `-i` (`--interactive`) to `local pull`, `loc
 ### 🩺 `health` — the one-line status check
 
 ```bash
-ruby nukegara.rb health    # fetch, then summarize local <-> env <-> master and env <-> remote, plus what to run next if anything differs
+ruby nukegara.rb health    # fetch, then summarize local <-> env <-> master and env/master <-> remote, plus what to run next if anything differs
 ```
 
 ### 💻 `local` — your filesystem ⇄ the env worktree
@@ -136,12 +136,14 @@ ruby nukegara.rb master promote -i                 # pick conflicts or env-only 
 
 ### 🔧 `git` — worktree git, without the `cd`
 
+Each command except `setup` runs on both the env worktree and `master/`, one after the other. `master/` shares its checkout with the rest of the repository, so `status`, `stage` and `commit` stay inside `master/`.
+
 ```bash
-ruby nukegara.rb git status               # git status of the env worktree
-ruby nukegara.rb git stage                # git add -A
+ruby nukegara.rb git status               # git status of the env worktree and master/
+ruby nukegara.rb git stage                # git add -A (only master/ on the master side)
 ruby nukegara.rb git commit -m "..."      # commit staged changes (message optional)
-ruby nukegara.rb git push                 # push the branch
-ruby nukegara.rb git pull                 # pull the branch
+ruby nukegara.rb git push                 # push both branches
+ruby nukegara.rb git pull                 # pull both branches
 ruby nukegara.rb git setup                # create the worktree (and branch) for this host
 ```
 

@@ -11,69 +11,73 @@ class Git < Thor
     @config = NukegaraConfig.new
   end
 
-  desc "status", "Show git status of the env worktree"
+  desc "status", "Show git status of the env worktree and master/"
   def status
-    host_config = @config.current_host_config
-    @config.check_worktree_exists!(host_config)
-    worktree = @config.worktree_dir(host_config)
+    targets = git_targets
+    targets.each do |target|
+      print_target_header(target)
+      run_git(target, "status", "-sb", "--", *target[:pathspec])
+    end
 
-    run_git(host_config, "status", "-sb")
-
-    changes = worktree_changes(worktree)
+    changes = targets.flat_map { worktree_changes(it[:dir], it[:pathspec]) }
     # line[1] is the worktree column of "XY PATH" ("?" if untracked).
     if changes.any? { |line| line[1] != " " }
-      print_next_steps("stage the worktree changes" => "nukegara git stage")
+      print_next_steps("stage the changes" => nukegara_command("git stage"))
     elsif changes.any?
-      print_next_steps("commit the staged changes" => "nukegara git commit")
+      print_next_steps("commit the staged changes" => nukegara_command("git commit"))
     else
-      print_next_steps(remote_sync_step(*upstream_divergence(worktree)))
+      divergences = targets.map { upstream_divergence(it[:dir], it[:pathspec]) }
+      print_next_steps(remote_sync_step(divergences.sum(&:first), divergences.sum(&:last)))
     end
   end
 
-  desc "stage", "Stage all changes in the env worktree (git add -A)"
+  desc "stage", "Stage all changes in the env worktree and master/ (git add -A)"
   def stage
-    host_config = @config.current_host_config
-    @config.check_worktree_exists!(host_config)
+    dirty_targets = git_targets.select { worktree_changes(it[:dir], it[:pathspec]).any? }
+    abort("Nothing to stage.") if dirty_targets.empty?
 
-    dirty = run_git(host_config, "status", "--porcelain", capture: true)
-    abort("Nothing to stage.") if dirty.strip.empty?
-
-    run_git(host_config, "add", "-A")
-    run_git(host_config, "status", "-sb")
-    print_next_steps("commit the staged changes" => "nukegara git commit")
+    dirty_targets.each do |target|
+      run_git(target, "add", "-A", "--", *target[:pathspec])
+      print_target_header(target)
+      run_git(target, "status", "-sb", "--", *target[:pathspec])
+    end
+    print_next_steps("commit the staged changes" => nukegara_command("git commit"))
   end
 
   # Matches the message of the manual workflow this command replaced.
   DEFAULT_COMMIT_MESSAGE = "update dotfiles".freeze
 
-  desc "commit", "Commit the staged changes in the env worktree"
+  desc "commit", "Commit the staged changes in the env worktree and master/"
   option :message, type: :string, aliases: "-m", desc: "Commit message (default: \"#{DEFAULT_COMMIT_MESSAGE}\")"
   def commit
-    host_config = @config.current_host_config
-    @config.check_worktree_exists!(host_config)
-
-    abort("Nothing staged to commit. Run `nukegara git stage` first.") unless anything_staged?(host_config)
+    staged_targets = git_targets.select { anything_staged?(it) }
+    abort("Nothing staged to commit. Run `#{nukegara_command('git stage')}` first.") if staged_targets.empty?
 
     message = options[:message] || DEFAULT_COMMIT_MESSAGE
-    run_git(host_config, "commit", "-m", message)
-    print_next_steps("push the branch" => "nukegara git push")
+    staged_targets.each do |target|
+      print_target_header(target)
+      # The pathspec keeps changes staged outside master/ (e.g. lib/) out of
+      # master's commit.
+      run_git(target, "commit", "-m", message, "--", *target[:pathspec])
+    end
+    print_next_steps("push to the remote" => nukegara_command("git push"))
   end
 
-  desc "push", "Push the env worktree branch to its remote"
+  desc "push", "Push the branches of the env worktree and master/ to their remotes"
   def push
-    host_config = @config.current_host_config
-    @config.check_worktree_exists!(host_config)
-
-    run_git(host_config, "push")
+    git_targets.each do |target|
+      print_target_header(target)
+      run_git(target, "push")
+    end
   end
 
-  desc "pull", "Pull the env worktree branch from its remote"
+  desc "pull", "Pull the branches of the env worktree and master/ from their remotes"
   def pull
-    host_config = @config.current_host_config
-    @config.check_worktree_exists!(host_config)
-
-    run_git(host_config, "pull")
-    print_next_steps("check the sync state" => "nukegara health")
+    git_targets.each do |target|
+      print_target_header(target)
+      run_git(target, "pull")
+    end
+    print_next_steps("check the sync state" => nukegara_command("health"))
   end
 
   desc "setup", "Create the env worktree for this host's configured branch"
@@ -92,26 +96,30 @@ class Git < Thor
       puts "Worktree created: #{worktree}"
     end
 
-    print_next_steps("check the sync state" => "nukegara health")
+    print_next_steps("check the sync state" => nukegara_command("health"))
   end
 
   private
 
-  def run_git(host_config, *git_args, capture: false)
-    worktree = @config.worktree_dir(host_config)
+  def git_targets
+    host_config = @config.current_host_config
+    @config.check_worktree_exists!(host_config)
+    @config.git_targets(host_config)
+  end
 
-    if capture
-      out, = Open3.capture2("git", "-C", worktree.to_s, *git_args)
-      return out
-    end
+  # master/ prints the same relative paths as the env, so each output needs
+  # its side named.
+  def print_target_header(target)
+    puts colorize("#{target[:name]}:", :cyan)
+  end
 
-    system("git", "-C", worktree.to_s, *git_args) || abort("git #{git_args.first} failed.")
+  def run_git(target, *git_args)
+    system("git", "-C", target[:dir].to_s, *git_args) || abort("git #{git_args.first} failed in #{target[:name]}.")
   end
 
   # --quiet exits 1 when something is staged.
-  def anything_staged?(host_config)
-    worktree = @config.worktree_dir(host_config)
-    !system("git", "-C", worktree.to_s, "diff", "--cached", "--quiet")
+  def anything_staged?(target)
+    !system("git", "-C", target[:dir].to_s, "diff", "--cached", "--quiet", "--", *target[:pathspec])
   end
 
   def git_in_root(*git_args)

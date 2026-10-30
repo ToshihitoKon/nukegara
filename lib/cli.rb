@@ -22,39 +22,42 @@ class CLI < Thor
   desc "master SUBCOMMAND", "Manage master <-> env worktrees"
   subcommand "master", Master
 
-  desc "git SUBCOMMAND", "Run git operations on the env worktree (status/stage/commit/push/pull/setup)"
+  desc "git SUBCOMMAND", "Run git operations on the env worktree and master/ (status/stage/commit/push/pull/setup)"
   subcommand "git", Git
 
   desc "health",
-       "Show a one-line diff summary across stages (local <-> env <-> master, env <-> remote) and what to run next"
+       "Show a one-line diff summary across stages (local <-> env <-> master, env/master <-> remote) " \
+       "and what to run next"
   def health
     host_config = @config.current_host_config
     @config.check_worktree_exists!(host_config)
 
     local_env  = local_env_counts(host_config)
     env_master = env_master_counts(host_config) if @config.master_enabled?
-    worktree   = @config.worktree_dir(host_config)
-    fetched    = fetch_upstream(worktree)
-    env_remote = env_remote_counts(worktree)
+    # One fetch covers master too, as master/ lives in this same repository.
+    fetched    = fetch_upstream(@config.worktree_dir(host_config))
+    remotes    = @config.git_targets(host_config).to_h { [it[:name], remote_counts(it)] }
 
     env_master_summary = if env_master
                            format_stage("env<->master", env_master)
                          else
                            "env<->master skipped"
                          end
-    env_remote_summary = format_stage("env<->remote", env_remote)
-    env_remote_summary += " (fetch failed)" unless fetched
-    puts "health: #{format_stage('local<->env', local_env)} / #{env_master_summary} / #{env_remote_summary}"
+    remote_summaries = remotes.map do |name, counts|
+      summary = format_stage("#{name}<->remote", counts)
+      fetched ? summary : "#{summary} (fetch failed)"
+    end
+    puts "health: #{[format_stage('local<->env', local_env), env_master_summary, *remote_summaries].join(' / ')}"
 
-    # env<->remote first, since syncing local against an env behind its remote
-    # would build on stale files.
-    next_steps = if env_remote[:uncommitted].positive?
-                   { "review env<->remote" => "nukegara git status" }
+    # Remote stages first, since syncing against an env or master behind its
+    # remote would build on stale files.
+    next_steps = if remotes.values.any? { it[:uncommitted].positive? }
+                   { "review the uncommitted changes" => nukegara_command("git status") }
                  else
-                   remote_sync_step(env_remote[:behind], env_remote[:ahead])
+                   remote_sync_step(remotes.values.sum { it[:behind] }, remotes.values.sum { it[:ahead] })
                  end
-    next_steps["review local<->env"] = "nukegara local status" if local_env.values.sum.positive?
-    next_steps["review env<->master"] = "nukegara master status" if env_master && env_master.values.sum.positive?
+    next_steps["review local<->env"] = nukegara_command("local status") if local_env.values.sum.positive?
+    next_steps["review env<->master"] = nukegara_command("master status") if env_master && env_master.values.sum.positive?
     print_next_steps(next_steps)
   end
 
@@ -71,9 +74,9 @@ class CLI < Thor
     { conflict: differing_conflicts(EffectiveConfig.compute(@config, host_config)).size }
   end
 
-  def env_remote_counts(worktree)
-    behind, ahead = upstream_divergence(worktree)
-    { uncommitted: worktree_changes(worktree).size, ahead: ahead, behind: behind }
+  def remote_counts(target)
+    behind, ahead = upstream_divergence(target[:dir], target[:pathspec])
+    { uncommitted: worktree_changes(target[:dir], target[:pathspec]).size, ahead: ahead, behind: behind }
   end
 
   def format_stage(label, counts)
